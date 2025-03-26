@@ -38,7 +38,7 @@ public:
     void addEdge(int fromRoute, int toRoute, const std::string &toName,
                  float transferCost, float fare,
                  const std::vector<JeepneyDensity> &densities);
-    void visualize(int hour) const;
+    void visualize(int hour = -1) const;
     std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
 
 

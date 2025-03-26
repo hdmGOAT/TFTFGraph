@@ -5,9 +5,13 @@
 #include <iomanip>
 #include <limits>
 #include "TFTFGraph.h"
+#include <queue>
+#include <unordered_set>
+#include <limits>
+#include <algorithm>
 
 // TFTF Edge Structure
-float TFTFEdge::totalCost(int hour = -1) const
+float TFTFEdge::totalCost(int hour) const
     {
         float densityFactor = 1.0f;
         if (hour >= 0)
@@ -38,7 +42,7 @@ void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
     }
 
 
-void TFTFGraph::visualize(int hour = -1) const
+void TFTFGraph::visualize(int hour) const
     {
         std::cout << "\nTFTF Graph Visualization";
         if (hour >= 0)
@@ -87,15 +91,53 @@ void TFTFGraph::visualize(int hour = -1) const
         }
     }
 
-std::vector<int> TFTFGraph::findBestPath(int startRoute, int endRoute, int hour = -1)
-    {
-        // Dijkstra's algorithm implementation would go here
-        // For this example, we'll just show a placeholder
-        std::cout << "\nFinding best path from Route " << startRoute
-                  << " to Route " << endRoute;
-        if (hour >= 0)
-        {
-            std::cout << " at hour " << hour;
-        }
-        std::cout << "\n(Implementation of pathfinding algorithm would go here)\n";
+std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour) {
+    using PQNode = std::pair<float, int>;
+    std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> pq;
+
+    std::unordered_map<int, float> costToReach;
+    std::unordered_map<int, int> previous;
+    std::unordered_set<int> visited;
+
+    for (const auto& [id, _] : routes) {
+        costToReach[id] = std::numeric_limits<float>::infinity();
     }
+
+    costToReach[startRouteId] = 0.0f;
+    pq.push({0.0f, startRouteId});
+
+    while (!pq.empty()) {
+        auto [currCost, currRouteId] = pq.top();
+        pq.pop();
+
+        if (visited.count(currRouteId)) continue;
+        visited.insert(currRouteId);
+
+        if (currRouteId == endRouteId) break;
+
+        const auto& currentNode = routes.at(currRouteId);
+        for (const auto& edge : currentNode.edges) {
+            float edgeCost = edge.totalCost(hour);
+            float newCost = currCost + edgeCost;
+
+            if (newCost < costToReach[edge.destinationRoute]) {
+                costToReach[edge.destinationRoute] = newCost;
+                previous[edge.destinationRoute] = currRouteId;
+                pq.push({newCost, edge.destinationRoute});
+            }
+        }
+    }
+
+    std::vector<int> path;
+    if (costToReach[endRouteId] == std::numeric_limits<float>::infinity()) {
+        return {};
+    }
+
+    for (int at = endRouteId; at != startRouteId; at = previous[at]) {
+        path.push_back(at);
+    }
+    path.push_back(startRouteId);
+    std::reverse(path.begin(), path.end());
+
+    return path;
+}
