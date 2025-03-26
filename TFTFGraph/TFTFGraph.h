@@ -17,7 +17,7 @@ struct JeepneyDensity {
 
 
 struct TFTFEdge {
-    int destinationRouteId; //What route the edge transfers to
+    int destinationRoute; //What route the edge transfers to
     std::string destinationRouteName;
     float transferCost;
     float fare;
@@ -35,9 +35,11 @@ struct RouteNode {
 class TFTFGraph {
 public:
     void addRoute(int id, const std::string& name);
-    void addEdge(int from, int to, std::string transferDesc, float transferCost, float fare, std::vector<JeepneyDensity> densityByInterval);
-    std::vector<int> findBestPath(int startRouteId, int endRouteId, int hour = -1);
-    void visualize(int hour = -1);
+    void addEdge(int fromRoute, int toRoute, const std::string &toName,
+                 float transferCost, float fare,
+                 const std::vector<JeepneyDensity> &densities);
+    void visualize(int hour) const;
+    std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
 
 
 private:

@@ -4,9 +4,10 @@
 #include <map>
 #include <iomanip>
 #include <limits>
+#include "TFTFGraph.h"
 
 // TFTF Edge Structure
-struct TFTFEdge::totalCost(int hour = -1) const
+float TFTFEdge::totalCost(int hour = -1) const
     {
         float densityFactor = 1.0f;
         if (hour >= 0)
@@ -20,9 +21,8 @@ struct TFTFEdge::totalCost(int hour = -1) const
                 }
             }
         }
-        return (transferCost + fare) * densityFactor;
-    }
-};
+    return (transferCost + fare) * densityFactor;
+}
 
 
 // TFTF Graph Class
@@ -87,7 +87,7 @@ void TFTFGraph::visualize(int hour = -1) const
         }
     }
 
-void TFTFGraph::findBestPath(int startRoute, int endRoute, int hour = -1)
+std::vector<int> TFTFGraph::findBestPath(int startRoute, int endRoute, int hour = -1)
     {
         // Dijkstra's algorithm implementation would go here
         // For this example, we'll just show a placeholder
