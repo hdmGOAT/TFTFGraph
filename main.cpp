@@ -5,14 +5,12 @@ int main()
 {
     TFTFGraph jeepneyNetwork;
 
-    // Add routes to the network
     jeepneyNetwork.addRoute(1, "Ayala - Guadalupe");
     jeepneyNetwork.addRoute(2, "Guadalupe - Cubao");
     jeepneyNetwork.addRoute(3, "Cubao - Monumento");
     jeepneyNetwork.addRoute(4, "Guadalupe - Makati");
     jeepneyNetwork.addRoute(5, "Makati - Pasay");
-
-    // Define common time intervals and density factors
+    
     std::vector<JeepneyDensity> morningRush = {{6, 9, 1.5f}}; // Higher cost during rush hour
     std::vector<JeepneyDensity> afternoonRush = {{16, 19, 1.3f}};
     std::vector<JeepneyDensity> lateNight = {{22, 5, 2.0f}}; // Higher cost due to scarcity
