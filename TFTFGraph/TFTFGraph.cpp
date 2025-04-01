@@ -10,7 +10,6 @@
 #include <limits>
 #include <algorithm>
 
-// TFTF Edge Structure
 float TFTFEdge::totalCost(int hour) const
     {
         float densityFactor = 1.0f;
@@ -28,8 +27,6 @@ float TFTFEdge::totalCost(int hour) const
     return (transferCost + fare) * densityFactor;
 }
 
-
-// TFTF Graph Class
 void TFTFGraph::addRoute(int routeId, const std::string &routeName)
     {
         routes[routeId] = {routeId, routeName, {}};
@@ -74,7 +71,6 @@ void TFTFGraph::visualize(int hour) const
                     float cost = edge.totalCost(hour);
                     std::cout << ", Total Cost: " << std::fixed << std::setprecision(2) << cost;
 
-                    // Find the density factor for display
                     float densityFactor = 1.0f;
                     for (const auto &interval : edge.densityByInterval)
                     {
