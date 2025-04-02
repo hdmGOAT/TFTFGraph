@@ -32,11 +32,13 @@ void TFTFGraph::addRoute(int routeId, const std::string &routeName)
         routes[routeId] = {routeId, routeName, {}};
     }
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
-                 float transferCost, float fare,
-                 const std::vector<JeepneyDensity> &densities)
-    {
-        routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, densities});
-    }
+        float transferCost, float fare,
+        const std::vector<JeepneyDensity> &densities)
+{
+routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, densities});
+routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, densities}); // Add reverse edge
+}
+
 
 
 void TFTFGraph::visualize(int hour) const
@@ -87,53 +89,121 @@ void TFTFGraph::visualize(int hour) const
         }
     }
 
-std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour) {
-    using PQNode = std::pair<float, int>;
-    std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> pq;
-
-    std::unordered_map<int, float> costToReach;
-    std::unordered_map<int, int> previous;
-    std::unordered_set<int> visited;
-
-    for (const auto& [id, _] : routes) {
-        costToReach[id] = std::numeric_limits<float>::infinity();
+    float heuristic(int routeId, int targetRouteId) {
+        return std::abs(routeId - targetRouteId) * 1.5f;
     }
+    
 
-    costToReach[startRouteId] = 0.0f;
-    pq.push({0.0f, startRouteId});
-
-    while (!pq.empty()) {
-        auto [currCost, currRouteId] = pq.top();
-        pq.pop();
-
-        if (visited.count(currRouteId)) continue;
-        visited.insert(currRouteId);
-
-        if (currRouteId == endRouteId) break;
-
-        const auto& currentNode = routes.at(currRouteId);
-        for (const auto& edge : currentNode.edges) {
-            float edgeCost = edge.totalCost(hour);
-            float newCost = currCost + edgeCost;
-
-            if (newCost < costToReach[edge.destinationRoute]) {
-                costToReach[edge.destinationRoute] = newCost;
-                previous[edge.destinationRoute] = currRouteId;
-                pq.push({newCost, edge.destinationRoute});
+    std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour)
+    {
+        using PQNode = std::pair<float, int>;
+        std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> forwardPQ, backwardPQ;
+    
+        std::unordered_map<int, float> forwardCost, backwardCost;
+        std::unordered_map<int, int> forwardPrev, backwardPrev;
+        std::unordered_set<int> forwardVisited, backwardVisited;
+    
+        for (const auto &[id, _] : routes)
+        {
+            forwardCost[id] = std::numeric_limits<float>::infinity();
+            backwardCost[id] = std::numeric_limits<float>::infinity();
+        }
+    
+        forwardCost[startRouteId] = 0.0f;
+        backwardCost[endRouteId] = 0.0f;
+    
+        forwardPQ.push({0.0f, startRouteId});
+        backwardPQ.push({0.0f, endRouteId});
+    
+        int meetingPoint = -1;
+        float bestPathCost = std::numeric_limits<float>::infinity();
+    
+        while (!forwardPQ.empty() && !backwardPQ.empty())
+        {
+            if (!forwardPQ.empty())
+            {
+                auto [currCost, currRouteId] = forwardPQ.top();
+                forwardPQ.pop();
+    
+                if (forwardVisited.count(currRouteId))
+                    continue;
+                forwardVisited.insert(currRouteId);
+    
+                if (backwardVisited.count(currRouteId))
+                {
+                    meetingPoint = currRouteId;
+                    bestPathCost = std::min(bestPathCost, forwardCost[currRouteId] + backwardCost[currRouteId]);
+                    break;
+                }
+    
+                for (const auto &edge : routes.at(currRouteId).edges)
+                {
+                    float edgeCost = edge.totalCost(hour);
+                    float newCost = currCost + edgeCost;
+    
+                    if (newCost < forwardCost[edge.destinationRoute])
+                    {
+                        forwardCost[edge.destinationRoute] = newCost;
+                        forwardPrev[edge.destinationRoute] = currRouteId;
+                        forwardPQ.push({newCost + heuristic(edge.destinationRoute, endRouteId), edge.destinationRoute});
+                    }
+                }
+            }
+    
+            if (!backwardPQ.empty())
+            {
+                auto [currCost, currRouteId] = backwardPQ.top();
+                backwardPQ.pop();
+    
+                if (backwardVisited.count(currRouteId))
+                    continue;
+                backwardVisited.insert(currRouteId);
+    
+                if (forwardVisited.count(currRouteId))
+                {
+                    meetingPoint = currRouteId;
+                    bestPathCost = std::min(bestPathCost, forwardCost[currRouteId] + backwardCost[currRouteId]);
+                    break;
+                }
+    
+                for (const auto &edge : routes.at(currRouteId).edges)
+                {
+                    float edgeCost = edge.totalCost(hour);
+                    float newCost = currCost + edgeCost;
+    
+                    if (newCost < backwardCost[edge.destinationRoute])
+                    {
+                        backwardCost[edge.destinationRoute] = newCost;
+                        backwardPrev[edge.destinationRoute] = currRouteId;
+                        backwardPQ.push({newCost + heuristic(edge.destinationRoute, startRouteId), edge.destinationRoute});
+                    }
+                }
             }
         }
+    
+        if (meetingPoint == -1)
+        {
+            std::cout << "No path found between routes " << startRouteId << " and " << endRouteId << std::endl;
+            return {};
+        }
+    
+        std::vector<int> path;
+        for (int at = meetingPoint; at != startRouteId; at = forwardPrev[at])
+        {
+            path.push_back(at);
+        }
+        path.push_back(startRouteId);
+        std::reverse(path.begin(), path.end());
+    
+        if (!path.empty() && path.back() == meetingPoint)
+            path.pop_back();
+    
+        for (int at = meetingPoint; at != endRouteId; at = backwardPrev[at])
+        {
+            path.push_back(at);
+        }
+        path.push_back(endRouteId);
+    
+        return path;
     }
-
-    std::vector<int> path;
-    if (costToReach[endRouteId] == std::numeric_limits<float>::infinity()) {
-        return {};
-    }
-
-    for (int at = endRouteId; at != startRouteId; at = previous[at]) {
-        path.push_back(at);
-    }
-    path.push_back(startRouteId);
-    std::reverse(path.begin(), path.end());
-
-    return path;
-}
+    

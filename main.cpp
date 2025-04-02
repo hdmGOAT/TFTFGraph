@@ -1,6 +1,17 @@
 #include <iostream>
 #include "./TFTFGraph/TFTFGraph.h"
 
+void printPath(const std::vector<int>& bestPath) {
+    std::cout << "Best path: ";
+    for (size_t i = 0; i < bestPath.size(); ++i) {
+        std::cout << bestPath[i];
+        if (i < bestPath.size() - 1) {
+            std::cout << " -> ";
+        }
+    }
+    std::cout << std::endl;
+}
+
 int main()
 {
     TFTFGraph jeepneyNetwork;
@@ -37,8 +48,9 @@ int main()
     jeepneyNetwork.visualize(23); // Late night
 
     // Demonstrate path finding (placeholder)
-    jeepneyNetwork.findBestPath(1, 3, 8);
-    jeepneyNetwork.findBestPath(1, 3, 14);
+    printPath(jeepneyNetwork.findBestPath(1, 3, 8));
+
+    printPath(jeepneyNetwork.findBestPath(1, 3, 2));
 
     return 0;
 }
