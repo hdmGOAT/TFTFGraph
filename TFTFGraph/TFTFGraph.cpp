@@ -82,7 +82,7 @@ void TFTFGraph::visualize(int hour) const
                             break;
                         }
                     }
-                    std::cout << " (Density Factor: " << densityFactor << ")";
+                    std::cout << " (Density Factor : " << densityFactor << ")";
                 }
                 std::cout << "\n";
             }
