@@ -89,10 +89,61 @@ void TFTFGraph::visualize(int hour) const
         }
     }
 
-    float heuristic(int routeId, int targetRouteId) {
-        return std::abs(routeId - targetRouteId) * 1.5f;
+    float TFTFGraph::heuristic(int current, int target) {
+        if (hopDistance.count(current) && hopDistance[current].count(target)) {
+            int hops = hopDistance[current][target];
+            return hops * minEdgeCost;
+        }
+        return 0.0f; // If no path info, fallback to 0 (neutral)
     }
     
+    
+    void TFTFGraph::precomputeHopDistances() {
+        hopDistance.clear();
+        minEdgeCost = std::numeric_limits<float>::infinity();
+    
+        for (const auto& [sourceId, _] : routes) {
+            std::queue<int> q;
+            std::unordered_map<int, int> visited;
+            q.push(sourceId);
+            visited[sourceId] = 0;
+    
+            while (!q.empty()) {
+                int current = q.front();
+                q.pop();
+    
+                for (const auto& edge : routes[current].edges) {
+                    if (!visited.count(edge.destinationRoute)) {
+                        visited[edge.destinationRoute] = visited[current] + 1;
+                        q.push(edge.destinationRoute);
+                    }
+                    // Update the smallest edge cost globally
+                    float cost = edge.totalCost();
+                    if (cost < minEdgeCost) {
+                        minEdgeCost = cost;
+                    }
+                }
+            }
+    
+            hopDistance[sourceId] = visited;
+        }
+    
+        if (minEdgeCost == std::numeric_limits<float>::infinity()) {
+            minEdgeCost = 1.0f; // Fallback to prevent divide-by-zero
+        }
+    }
+
+    void TFTFGraph::printHopDistances() const {
+        std::cout << "\n--- Hop Distances (BFS) ---\n";
+        for (const auto& [from, innerMap] : hopDistance) {
+            for (const auto& [to, hops] : innerMap) {
+                std::cout << "From " << from << " to " << to << ": " << hops << " hops\n";
+            }
+        }
+    }
+
+    
+
 
     std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour)
     {

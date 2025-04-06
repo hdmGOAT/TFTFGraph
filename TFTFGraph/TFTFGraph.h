@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <limits>
 
 struct JeepneyDensity {
     int startHour; 
@@ -40,10 +41,17 @@ public:
                  const std::vector<JeepneyDensity> &densities);
     void visualize(int hour = -1) const;
     std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
+    void precomputeHopDistances();
+    float heuristic(int current, int target);
+    void printHopDistances() const;
+
 
 
 private:
     std::unordered_map<int, RouteNode> routes;
+    std::unordered_map<int, std::unordered_map<int, int>> hopDistance;
+    float minEdgeCost = std::numeric_limits<float>::infinity();
+
 };
 
 #endif
