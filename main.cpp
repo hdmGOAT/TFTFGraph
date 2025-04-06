@@ -49,6 +49,10 @@ int main() {
     jeepneyNetwork.addEdge(8, 3, "H-C", 9.0f, 25.0f, lateNight);
     jeepneyNetwork.addEdge(1, 8, "A-H", 10.0f, 30.0f, morningRush); //direct but long.
 
+    // Precompute hop distances for the heuristic
+    jeepneyNetwork.precomputeHopDistances();
+    jeepneyNetwork.printHopDistances();
+
     // Visualize the graph at different times
     jeepneyNetwork.visualize();
     jeepneyNetwork.visualize(8);
