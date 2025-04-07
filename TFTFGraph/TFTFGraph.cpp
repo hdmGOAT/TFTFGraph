@@ -27,10 +27,18 @@ float TFTFEdge::totalCost(int hour) const
     return (transferCost + fare) * densityFactor;
 }
 
-void TFTFGraph::addRoute(int routeId, const std::string &routeName)
-    {
+void TFTFGraph::addRoute(int routeId, const std::string &routeName){
         routes[routeId] = {routeId, routeName, {}};
+}
+
+void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordinates) {
+    if (routes.find(routeId) != routes.end()) {
+        routes[routeId].path = coordinates;
+    } else {
+        std::cerr << "Route ID " << routeId << " not found.\n";
     }
+}
+
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
         float transferCost, float fare,
         const std::vector<JeepneyDensity> &densities)

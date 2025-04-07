@@ -6,6 +6,11 @@
 #include <unordered_map>
 #include <limits>
 
+struct Coordinate {
+    double latitude;
+    double longitude;
+};
+
 struct JeepneyDensity {
     int startHour; 
     int endHour;   
@@ -31,6 +36,7 @@ struct RouteNode {
     int routeId;
     std::string routeName;
     std::vector<TFTFEdge> edges;
+    std::vector<Coordinate> path;
 };
 
 class TFTFGraph {
@@ -44,6 +50,7 @@ public:
     void precomputeHopDistances();
     float heuristic(int current, int target);
     void printHopDistances() const;
+    void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
 
 
 
