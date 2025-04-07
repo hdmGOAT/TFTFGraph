@@ -9,6 +9,7 @@
 #include <unordered_set>
 #include <limits>
 #include <algorithm>
+#include "Helpers/helpers.h"
 
 float TFTFEdge::totalCost(int hour) const
     {
@@ -46,6 +47,35 @@ void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
 routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, densities});
 routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, densities}); // Add reverse edge
 }
+
+void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer) {
+    for (const auto& [fromId, fromNode] : routes) {
+        for (const auto& [toId, toNode] : routes) {
+            if (fromId == toId) continue;
+
+            // For now, we allow multiple transfers between same route pairs.
+            for (const auto& fromCoord : fromNode.path) {
+                for (const auto& toCoord : toNode.path) {
+                    float dist = haversine(fromCoord, toCoord);
+                    if (dist <= transferRangeMeters) {
+                        // Check if this edge already exists
+                        bool exists = false;
+                        for (const auto& edge : fromNode.edges) {
+                            if (edge.destinationRoute == toId && std::abs(edge.transferCost - dist) < 1e-2f) {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        if (!exists) {
+                            addEdge(fromId, toId, toNode.routeName, dist, farePerTransfer, {});
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 
 

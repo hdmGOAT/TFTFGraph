@@ -51,6 +51,8 @@ public:
     float heuristic(int current, int target);
     void printHopDistances() const;
     void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
+    void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
+
 
 
 
