@@ -94,7 +94,7 @@ void TFTFGraph::visualize(int hour) const
             int hops = hopDistance[current][target];
             return hops * minEdgeCost;
         }
-        return 0.0f; // If no path info, fallback to 0 (neutral)
+        return 0.0f; // Default heuristic if no hop distance is available
     }
     
     
@@ -117,7 +117,7 @@ void TFTFGraph::visualize(int hour) const
                         visited[edge.destinationRoute] = visited[current] + 1;
                         q.push(edge.destinationRoute);
                     }
-                    // Update the smallest edge cost globally
+
                     float cost = edge.totalCost();
                     if (cost < minEdgeCost) {
                         minEdgeCost = cost;
@@ -129,7 +129,7 @@ void TFTFGraph::visualize(int hour) const
         }
     
         if (minEdgeCost == std::numeric_limits<float>::infinity()) {
-            minEdgeCost = 1.0f; // Fallback to prevent divide-by-zero
+            minEdgeCost = 1.0f;
         }
     }
 

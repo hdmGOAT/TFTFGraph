@@ -18,7 +18,7 @@ struct JeepneyDensity {
 
 
 struct TFTFEdge {
-    int destinationRoute; //What route the edge transfers to
+    int destinationRoute; 
     std::string destinationRouteName;
     float transferCost;
     float fare;
