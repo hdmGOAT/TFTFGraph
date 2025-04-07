@@ -1,7 +1,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include "helpers.h"
-#include "TFTFGraph.h"
+#include "../TFTFGraph.h"
 
 const float EARTH_RADIUS_METERS = 6371000.0f;
 

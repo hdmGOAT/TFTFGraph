@@ -53,12 +53,10 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
         for (const auto& [toId, toNode] : routes) {
             if (fromId == toId) continue;
 
-            // For now, we allow multiple transfers between same route pairs.
             for (const auto& fromCoord : fromNode.path) {
                 for (const auto& toCoord : toNode.path) {
                     float dist = haversine(fromCoord, toCoord);
                     if (dist <= transferRangeMeters) {
-                        // Check if this edge already exists
                         bool exists = false;
                         for (const auto& edge : fromNode.edges) {
                             if (edge.destinationRoute == toId && std::abs(edge.transferCost - dist) < 1e-2f) {
@@ -75,9 +73,6 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
         }
     }
 }
-
-
-
 
 void TFTFGraph::visualize(int hour) const
     {

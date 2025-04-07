@@ -1,6 +1,8 @@
 {
     "C_Cpp.default.compilerPath": "C:/msys64/mingw64/bin/g++.exe",
     "files.associations": {
-        "limits": "cpp"
+        "*.js": "javascript",
+        "limits": "cpp",
+        "iostream": "cpp"
     }
 }
