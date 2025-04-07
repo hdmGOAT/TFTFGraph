@@ -11,6 +11,38 @@
 #include <algorithm>
 #include "Helpers/helpers.h"
 
+std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensity>& a,
+    const std::vector<JeepneyDensity>& b) {
+std::vector<JeepneyDensity> result;
+
+// Create a map from hour to density for each route
+std::unordered_map<int, float> mapA, mapB;
+
+for (const auto& d : a) {
+for (int h = d.startHour; h < d.endHour; ++h) {
+mapA[h] = d.jeepneyDensity;
+}
+}
+
+for (const auto& d : b) {
+for (int h = d.startHour; h < d.endHour; ++h) {
+mapB[h] = d.jeepneyDensity;
+}
+}
+
+// Calculate average per hour
+for (int h = 0; h < 24; ++h) {
+float dA = mapA.count(h) ? mapA[h] : 1.0f; // Default to 1.0 if missing
+float dB = mapB.count(h) ? mapB[h] : 1.0f;
+float avg = (dA + dB) / 2.0f;
+
+result.push_back({h, h + 1, avg});
+}
+
+return result;
+}
+
+
 float TFTFEdge::totalCost(int hour) const
     {
         float densityFactor = 1.0f;
@@ -43,9 +75,12 @@ void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordin
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
         float transferCost, float fare,
         const std::vector<JeepneyDensity> &densities)
-{
-routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, densities});
-routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, densities}); // Add reverse edge
+{std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities,
+    routes[toRoute].densities);
+
+routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
+routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
+// Add reverse edge
 }
 
 void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer) {

@@ -37,14 +37,15 @@ struct RouteNode {
     std::string routeName;
     std::vector<TFTFEdge> edges;
     std::vector<Coordinate> path;
+    std::vector<JeepneyDensity> densities;
 };
 
 class TFTFGraph {
 public:
     void addRoute(int id, const std::string& name);
     void addEdge(int fromRoute, int toRoute, const std::string &toName,
-                 float transferCost, float fare,
-                 const std::vector<JeepneyDensity> &densities);
+        float transferCost, float fare,
+        const std::vector<JeepneyDensity> &densities = {});
     void visualize(int hour = -1) const;
     std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
     void precomputeHopDistances();
@@ -52,6 +53,8 @@ public:
     void printHopDistances() const;
     void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
     void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
+    void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
+
 
 
 

@@ -23,6 +23,7 @@ int main() {
     jeepneyNetwork.addRoute(6, "F");
     jeepneyNetwork.addRoute(7, "G");
     jeepneyNetwork.addRoute(8, "H");
+    
 
     // Add route coordinates (paths)
     jeepneyNetwork.setRoutePath(1, {{14.5995, 120.9842}, {14.6000, 120.9850}});
@@ -33,6 +34,21 @@ int main() {
     jeepneyNetwork.setRoutePath(6, {{14.6015, 120.9865}});
     jeepneyNetwork.setRoutePath(7, {{14.6020, 120.9870}});
     jeepneyNetwork.setRoutePath(8, {{14.5990, 120.9840}, {14.6005, 120.9852}});
+
+
+    std::vector<JeepneyDensity> morning = {{6, 10, 1.2f}};
+    std::vector<JeepneyDensity> afternoon = {{10, 16, 1.5f}};
+    std::vector<JeepneyDensity> night = {{16, 20, 2.0f}};
+    std::vector<JeepneyDensity> lateNight = {{20, 24, 0.8f}, {0, 6, 0.5f}};
+    
+    jeepneyNetwork.setRouteDensities(1, morning);
+    jeepneyNetwork.setRouteDensities(2, afternoon);
+    jeepneyNetwork.setRouteDensities(3, night);
+    jeepneyNetwork.setRouteDensities(4, lateNight);
+    jeepneyNetwork.setRouteDensities(5, morning);
+    jeepneyNetwork.setRouteDensities(6, afternoon);
+    jeepneyNetwork.setRouteDensities(7, night);
+    
 
     // Create transfers based on proximity (e.g., 200 meters)
     jeepneyNetwork.createTransfersFromCoordinates(200.0f);
