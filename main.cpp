@@ -36,18 +36,78 @@ int main() {
     jeepneyNetwork.setRoutePath(8, {{14.5990, 120.9840}, {14.6005, 120.9852}});
 
 
-    std::vector<JeepneyDensity> morning = {{6, 10, 1.2f}};
-    std::vector<JeepneyDensity> afternoon = {{10, 16, 1.5f}};
-    std::vector<JeepneyDensity> night = {{16, 20, 2.0f}};
-    std::vector<JeepneyDensity> lateNight = {{20, 24, 0.8f}, {0, 6, 0.5f}};
-    
-    jeepneyNetwork.setRouteDensities(1, morning);
-    jeepneyNetwork.setRouteDensities(2, afternoon);
-    jeepneyNetwork.setRouteDensities(3, night);
-    jeepneyNetwork.setRouteDensities(4, lateNight);
-    jeepneyNetwork.setRouteDensities(5, morning);
-    jeepneyNetwork.setRouteDensities(6, afternoon);
-    jeepneyNetwork.setRouteDensities(7, night);
+// Route 1: Balanced with evening peak
+jeepneyNetwork.setRouteDensities(1, {
+    {0, 6, 0.6f},     // Early morning: light traffic
+    {6, 10, 1.3f},    // Morning rush
+    {10, 16, 1.1f},   // Midday steady
+    {16, 20, 1.7f},   // Evening rush
+    {20, 24, 0.8f}    // Night
+});
+
+// Route 2: Busy all day, high in afternoon/evening
+jeepneyNetwork.setRouteDensities(2, {
+    {0, 6, 0.5f},     // Early low
+    {6, 10, 1.5f},    // Morning rush
+    {10, 16, 1.3f},   // Midday high
+    {16, 20, 1.9f},   // Evening peak
+    {20, 24, 0.9f}    // Slight night traffic
+});
+
+// Route 3: Afternoon and evening focused
+jeepneyNetwork.setRouteDensities(3, {
+    {0, 6, 0.7f},     // Quiet early
+    {6, 10, 1.1f},    // Moderate morning
+    {10, 16, 1.0f},   // Low midday
+    {16, 20, 2.2f},   // Very heavy evening rush
+    {20, 24, 1.0f}    // Moderate night
+});
+
+// Route 4: Light overall, with small peak
+jeepneyNetwork.setRouteDensities(4, {
+    {0, 6, 0.4f},     // Low early
+    {6, 10, 1.0f},    // Small bump in morning
+    {10, 16, 1.0f},   // Consistent low traffic
+    {16, 20, 1.2f},   // Slight rise in evening
+    {20, 24, 0.6f}    // Night fade
+});
+
+// Route 5: Typical commuter-heavy pattern
+jeepneyNetwork.setRouteDensities(5, {
+    {0, 6, 0.3f},     // Minimal pre-dawn
+    {6, 10, 1.4f},    // Busy morning
+    {10, 16, 1.2f},   // Steady midday
+    {16, 20, 1.6f},   // Heavy rush home
+    {20, 24, 0.7f}    // Calm night
+});
+
+// Route 6: High activity, especially in AM/PM
+jeepneyNetwork.setRouteDensities(6, {
+    {0, 6, 0.5f},     // Low pre-dawn
+    {6, 10, 1.6f},    // Heavy morning
+    {10, 16, 1.3f},   // Sustained midday
+    {16, 20, 1.8f},   // High evening
+    {20, 24, 0.9f}    // Some night traffic
+});
+
+// Route 7: Evening-heavy route
+jeepneyNetwork.setRouteDensities(7, {
+    {0, 6, 0.8f},     // Surprisingly active early
+    {6, 10, 1.2f},    // Normal morning
+    {10, 16, 1.0f},   // Stable midday
+    {16, 20, 2.0f},   // Very busy evening
+    {20, 24, 1.1f}    // Stays active into the night
+});
+
+// Route 8: Moderate all-day with evening bump
+jeepneyNetwork.setRouteDensities(8, {
+    {0, 6, 0.6f},     // Low early
+    {6, 10, 1.0f},    // Normal morning
+    {10, 16, 0.9f},   // Calm midday
+    {16, 20, 1.4f},   // Active evening
+    {20, 24, 0.7f}    // Night wind-down
+});
+
     
 
     // Create transfers based on proximity (e.g., 200 meters)

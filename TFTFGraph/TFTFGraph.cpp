@@ -75,13 +75,23 @@ void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordin
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
         float transferCost, float fare,
         const std::vector<JeepneyDensity> &densities)
-{std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities,
+{
+    
+    std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities,
     routes[toRoute].densities);
+    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
+    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
 
-routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
-routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
-// Add reverse edge
 }
+
+void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities) {
+    if (routes.find(routeId) != routes.end()) {
+        routes[routeId].densities = densities;
+    } else {
+        std::cerr << "Route ID " << routeId << " not found.\n";
+    }
+}
+
 
 void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer) {
     for (const auto& [fromId, fromNode] : routes) {
@@ -320,7 +330,7 @@ void TFTFGraph::visualize(int hour) const
         for (int at = meetingPoint; at != endRouteId; at = backwardPrev[at])
         {
             path.push_back(at);
-        }
+        }//aa
         path.push_back(endRouteId);
     
         return path;
