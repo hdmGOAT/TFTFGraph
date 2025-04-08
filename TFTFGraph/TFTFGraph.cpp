@@ -56,7 +56,7 @@ float TFTFEdge::totalCost(int hour) const
                 }
             }
         }
-    return (transferCost + fare) * densityFactor;
+    return (transferCost) * densityFactor;
 }
 
 void TFTFGraph::addRoute(int routeId, const std::string &routeName){
@@ -72,19 +72,19 @@ void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordin
 }
 
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
-        float transferCost, float fare,
+        float transferCost,
         const std::vector<JeepneyDensity> &densities, Coordinate entryCoord, Coordinate exitCoord) 
 {
     std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities,
                                                                     routes[toRoute].densities);
 
     // Add edge from -> to
-    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
+    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, avgDensity});
     routes[fromRoute].edges.back().entryCoord = entryCoord;
     routes[fromRoute].edges.back().exitCoord = exitCoord;
 
     // Add edge to -> from (reverse direction)
-    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
+    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, avgDensity});
     routes[toRoute].edges.back().entryCoord = entryCoord;
     routes[toRoute].edges.back().exitCoord = exitCoord;
 }
@@ -118,7 +118,7 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
                         if (!exists) {
                             float fare = computeSegmentFare(routes[fromId].path, fromCoord, toCoord);
 
-                            addEdge(fromId, toId, toNode.routeName, dist, fare, {}, fromCoord, toCoord);
+                            addEdge(fromId, toId, toNode.routeName, dist,  {}, fromCoord, toCoord);
 
                         }
                     }
@@ -152,8 +152,7 @@ void TFTFGraph::visualize(int hour) const
             {
                 std::cout << "  -> Route " << edge.destinationRoute << ": "
                           << edge.destinationRouteName << "\n";
-                std::cout << "     Transfer Cost: " << edge.transferCost
-                          << ", Fare: " << edge.fare;
+                std::cout << "     Transfer Cost: " << edge.transferCost;
 
                 if (hour >= 0)
                 {

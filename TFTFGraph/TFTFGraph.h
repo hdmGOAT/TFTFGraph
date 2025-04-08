@@ -26,7 +26,6 @@ struct TFTFEdge {
     int destinationRoute; 
     std::string destinationRouteName;
     float transferCost;
-    float fare;
     std::vector<JeepneyDensity> densityByInterval;
     Coordinate entryCoord;
     Coordinate exitCoord;
@@ -55,7 +54,7 @@ class TFTFGraph {
 public:
     void addRoute(int id, const std::string& name);
     void addEdge(int fromRoute, int toRoute, const std::string &toName,
-        float transferCost, float fare,
+        float transferCost, 
         const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
     void visualize(int hour = -1) const;
     std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
