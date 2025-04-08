@@ -119,11 +119,4 @@ float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, 
     return BASE_FARE + distanceKm * FARE_PER_KM;
 }
 
-double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
-    double totalFare = 0.0;
-
-    
-
-    return totalFare;
-}
 
