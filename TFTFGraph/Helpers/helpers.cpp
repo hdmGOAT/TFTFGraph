@@ -83,9 +83,38 @@ float computePathDistance(const std::vector<Coordinate>& path, Coordinate entry,
 
     return totalDist; // in meters
 }
+float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath) {
+    if (routePath.empty()) return 0.0f;
+
+    // Find index of the closest point to 'start'
+    auto findClosestIndex = [](const Coordinate& target, const std::vector<Coordinate>& path) {
+        int closestIdx = 0;
+        float minDist = std::numeric_limits<float>::max();
+        for (int i = 0; i < path.size(); ++i) {
+            float dist = haversine(target, path[i]);
+            if (dist < minDist) {
+                minDist = dist;
+                closestIdx = i;
+            }
+        }
+        return closestIdx;
+    };
+
+    int startIdx = findClosestIndex(start, routePath);
+    int endIdx = findClosestIndex(end, routePath);
+
+    if (startIdx > endIdx) std::swap(startIdx, endIdx);  // Make sure we iterate forward
+
+    float totalDist = 0.0f;
+    for (int i = startIdx; i < endIdx; ++i) {
+        totalDist += haversine(routePath[i], routePath[i + 1]);
+    }
+
+    return totalDist;
+}
 
 float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit) {
-    float distanceMeters = computePathDistance(path, entry, exit);
+    float distanceMeters = getActualSegmentDistance(entry, exit, path);
     float distanceKm = distanceMeters / 1000.0f;
     return BASE_FARE + distanceKm * FARE_PER_KM;
 }
@@ -93,28 +122,7 @@ float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, 
 double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
     double totalFare = 0.0;
 
-    // If the path is empty, return 0 fare
-    if (path.empty()) {
-        return totalFare;
-    }
-
-    // First segment: from the start coordinate to the exit coordinate of the first edge
-    std::vector<Coordinate> edgeCoordinates;
-    for (const auto& edge : path) {
-        edgeCoordinates.push_back(edge.entryCoord);
-        edgeCoordinates.push_back(edge.exitCoord);
-    }
-    totalFare += computeSegmentFare(edgeCoordinates, startCoord, path[0].exitCoord);
-
-    // Intermediate segments: from the entry to the exit coordinate of each edge
-    for (size_t i = 1; i < path.size(); ++i) {
-        std::vector<Coordinate> edgeCoordinates = {path[i-1].entryCoord, path[i].exitCoord};
-        totalFare += computeSegmentFare(edgeCoordinates, path[i-1].entryCoord, path[i].exitCoord);
-    }
-
-    // Last segment: from the entry coordinate of the last edge to the end coordinate
-    std::vector<Coordinate> lastEdgeCoordinates = {path.back().entryCoord, path.back().exitCoord};
-    totalFare += computeSegmentFare(lastEdgeCoordinates, path.back().entryCoord, endCoord);
+    
 
     return totalFare;
 }

@@ -12,5 +12,6 @@ float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate
 float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit);
 float computePathDistance(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit);
 double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
+float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath);
 
 #endif

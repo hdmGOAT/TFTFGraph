@@ -79,9 +79,31 @@ void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
                                                                     routes[toRoute].densities);
 
     // Add edge from -> to
-    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, avgDensity});
+    routes[fromRoute].edges.push_back({toRoute, fromRoute,toName, transferCost, avgDensity});
     routes[fromRoute].edges.back().entryCoord = entryCoord;
     routes[fromRoute].edges.back().exitCoord = exitCoord;
+}
+
+double TFTFGraph::calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
+    double totalFare = 0.0;
+
+    std::vector<RouteNode> takenRoutes;
+    int startRouteId = -1;
+    if (!path.empty()) {
+    for (const auto& [routeId, routeNode] : routes) {
+        for (const auto& edge : routeNode.edges) {
+            if (edge.destinationRoute == path[0].destinationRoute &&
+                edge.entryCoord == path[0].entryCoord &&
+                edge.exitCoord == path[0].exitCoord) {
+                startRouteId = routeId;
+                break;
+            }
+        }
+        if (startRouteId != -1) break;
+    }
+
+}
+    return totalFare;
 }
 
 

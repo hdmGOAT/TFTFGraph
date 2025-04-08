@@ -11,6 +11,10 @@ struct Coordinate {
     double longitude;
 };
 
+bool operator==(const Coordinate& lhs, const Coordinate& rhs) {
+    return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude;
+}
+
 struct JeepneyDensity {
     int startHour; 
     int endHour;   
@@ -24,6 +28,7 @@ struct JeepneyDensity {
 
 struct TFTFEdge {
     int destinationRoute; 
+    int originRoute;
     std::string destinationRouteName;
     float transferCost;
     std::vector<JeepneyDensity> densityByInterval;
@@ -41,13 +46,6 @@ struct RouteNode {
     std::vector<JeepneyDensity> densities;
 };
 
-struct TransferPoint {
-    int fromRoute;
-    Coordinate fromCoord;
-    int toRoute;
-    Coordinate toCoord;
-    float transferDistance;
-};
 
 
 class TFTFGraph {
@@ -64,7 +62,7 @@ public:
     TFTFEdge* getEdge(int fromRoute, int toRoute) const;
     int findClosestRoute(const Coordinate& startCoord);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
-
+    double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
 
 private:
     std::unordered_map<int, RouteNode> routes;
