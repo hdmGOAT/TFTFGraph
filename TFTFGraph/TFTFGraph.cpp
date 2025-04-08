@@ -11,6 +11,9 @@
 #include <algorithm>
 #include "Helpers/helpers.h"
 
+const float BASE_FARE = 10.0f;
+const float FARE_PER_KM = 2.0f;
+
 std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensity>& a,
     const std::vector<JeepneyDensity>& b) {
     std::vector<JeepneyDensity> result;
@@ -219,9 +222,6 @@ void TFTFGraph::visualize(int hour) const
         }
     }
 
-    
-
-
     std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour)
     {
         using PQNode = std::pair<float, int>;
@@ -246,10 +246,8 @@ void TFTFGraph::visualize(int hour) const
         int meetingPoint = -1;
         float bestPathCost = std::numeric_limits<float>::infinity();
     
-        while (!forwardPQ.empty() && !backwardPQ.empty())
-        {
-            if (!forwardPQ.empty())
-            {
+        while (!forwardPQ.empty() && !backwardPQ.empty()){
+            if (!forwardPQ.empty()) {
                 auto [currCost, currRouteId] = forwardPQ.top();
                 forwardPQ.pop();
     

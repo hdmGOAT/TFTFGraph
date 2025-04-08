@@ -40,6 +40,15 @@ struct RouteNode {
     std::vector<JeepneyDensity> densities;
 };
 
+struct TransferPoint {
+    int fromRoute;
+    Coordinate fromCoord;
+    int toRoute;
+    Coordinate toCoord;
+    float transferDistance;
+};
+
+
 class TFTFGraph {
 public:
     void addRoute(int id, const std::string& name);
