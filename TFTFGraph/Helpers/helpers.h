@@ -3,5 +3,5 @@
 #include "../TFTFGraph.h"
 
 float haversine(const Coordinate& a, const Coordinate& b);
-
+int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate& target);
 #endif

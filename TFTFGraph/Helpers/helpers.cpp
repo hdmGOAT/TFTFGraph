@@ -25,3 +25,17 @@ float haversine(const Coordinate& a, const Coordinate& b)  {
     double c = 2 * std::atan2(std::sqrt(h), std::sqrt(1 - h));
     return EARTH_RADIUS_METERS * c;
 }
+
+int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate& target) {
+    int bestIdx = 0;
+    float bestDist = std::numeric_limits<float>::infinity();
+    for (size_t i = 0; i < path.size(); ++i) {
+        float dist = haversine(path[i], target);
+        if (dist < bestDist) {
+            bestDist = dist;
+            bestIdx = i;
+        }
+    }
+    return bestIdx;
+}
+

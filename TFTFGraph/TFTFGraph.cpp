@@ -13,33 +13,32 @@
 
 std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensity>& a,
     const std::vector<JeepneyDensity>& b) {
-std::vector<JeepneyDensity> result;
+    std::vector<JeepneyDensity> result;
 
-// Create a map from hour to density for each route
-std::unordered_map<int, float> mapA, mapB;
+    std::unordered_map<int, float> mapA, mapB;
 
-for (const auto& d : a) {
-for (int h = d.startHour; h < d.endHour; ++h) {
-mapA[h] = d.jeepneyDensity;
-}
-}
+    for (const auto& d : a) {
+        for (int h = d.startHour; h < d.endHour; ++h) {
+            mapA[h] = d.jeepneyDensity;
+        }
+    }
 
-for (const auto& d : b) {
-for (int h = d.startHour; h < d.endHour; ++h) {
-mapB[h] = d.jeepneyDensity;
-}
-}
+    for (const auto& d : b) {
+        for (int h = d.startHour; h < d.endHour; ++h) {
+            mapB[h] = d.jeepneyDensity;
+        }
+    }
 
-// Calculate average per hour
-for (int h = 0; h < 24; ++h) {
-float dA = mapA.count(h) ? mapA[h] : 1.0f; // Default to 1.0 if missing
-float dB = mapB.count(h) ? mapB[h] : 1.0f;
-float avg = (dA + dB) / 2.0f;
+    // Calculate average per hour
+    for (int h = 0; h < 24; ++h) {
+        float dA = mapA.count(h) ? mapA[h] : 1.0f; // Default to 1.0 if missing
+        float dB = mapB.count(h) ? mapB[h] : 1.0f;
+        float avg = (dA + dB) / 2.0f;
 
-result.push_back({h, h + 1, avg});
-}
+        result.push_back({h, h + 1, avg});
+    }
 
-return result;
+    return result;
 }
 
 
