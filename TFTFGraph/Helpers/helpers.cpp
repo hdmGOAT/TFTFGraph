@@ -3,9 +3,7 @@
 #include "helpers.h"
 #include "../TFTFGraph.h"
 
-const float BASE_FARE = 10.0f;
-const float FARE_PER_KM = 2.0f;
-const float EARTH_RADIUS_METERS = 6371000.0f;
+
 
 float haversine(const Coordinate& a, const Coordinate& b)  {
     auto deg2rad = [](double deg) {

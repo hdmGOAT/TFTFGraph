@@ -11,9 +11,6 @@
 #include <algorithm>
 #include "Helpers/helpers.h"
 
-const float BASE_FARE = 10.0f;
-const float FARE_PER_KM = 2.0f;
-
 std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensity>& a,
     const std::vector<JeepneyDensity>& b) {
     std::vector<JeepneyDensity> result;
@@ -76,15 +73,22 @@ void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordin
 
 void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
         float transferCost, float fare,
-        const std::vector<JeepneyDensity> &densities)
+        const std::vector<JeepneyDensity> &densities, Coordinate entryCoord, Coordinate exitCoord) 
 {
-    
     std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities,
-    routes[toRoute].densities);
-    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
-    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
+                                                                    routes[toRoute].densities);
 
+    // Add edge from -> to
+    routes[fromRoute].edges.push_back({toRoute, toName, transferCost, fare, avgDensity});
+    routes[fromRoute].edges.back().entryCoord = entryCoord;
+    routes[fromRoute].edges.back().exitCoord = exitCoord;
+
+    // Add edge to -> from (reverse direction)
+    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, fare, avgDensity});
+    routes[toRoute].edges.back().entryCoord = entryCoord;
+    routes[toRoute].edges.back().exitCoord = exitCoord;
 }
+
 
 void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities) {
     if (routes.find(routeId) != routes.end()) {
@@ -112,7 +116,10 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
                             }
                         }
                         if (!exists) {
-                            addEdge(fromId, toId, toNode.routeName, dist, farePerTransfer, {});
+                            float fare = computeSegmentFare(routes[fromId].path, fromCoord, toCoord);
+
+                            addEdge(fromId, toId, toNode.routeName, dist, fare, {}, fromCoord, toCoord);
+
                         }
                     }
                 }
@@ -332,4 +339,18 @@ void TFTFGraph::visualize(int hour) const
     
         return path;
     }
+
+TFTFEdge* TFTFGraph::getEdge(int fromRoute, int toRoute) const {
+    // Check if the 'fromRoute' exists in the routes map
+    if (routes.find(fromRoute) != routes.end()) {
+        // Look through all the edges of the 'fromRoute' route
+        for (const auto& edge : routes.at(fromRoute).edges) {
+            if (edge.destinationRoute == toRoute) {
+                // Return the pointer to the matching edge
+                return const_cast<TFTFEdge*>(&edge);  // We're modifying the returned object, hence the cast
+            }
+        }
+    }
+    return nullptr;  // Return nullptr if no matching edge is found
+}
     

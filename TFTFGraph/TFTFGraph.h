@@ -28,6 +28,8 @@ struct TFTFEdge {
     float transferCost;
     float fare;
     std::vector<JeepneyDensity> densityByInterval;
+    Coordinate entryCoord;
+    Coordinate exitCoord;
 
     float totalCost(int hour = -1) const;
 };
@@ -54,7 +56,7 @@ public:
     void addRoute(int id, const std::string& name);
     void addEdge(int fromRoute, int toRoute, const std::string &toName,
         float transferCost, float fare,
-        const std::vector<JeepneyDensity> &densities = {});
+        const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
     void visualize(int hour = -1) const;
     std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
     void precomputeHopDistances();
@@ -63,8 +65,7 @@ public:
     void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
     void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
     void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
-
-
+    TFTFEdge* getEdge(int fromRoute, int toRoute) const;
 
 
 
