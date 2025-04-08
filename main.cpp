@@ -1,23 +1,8 @@
 #include <iostream>
 #include <vector>
 #include "./TFTFGraph/TFTFGraph.h"
+#include "./TFTFGraph/Helpers/helpers.h"
 
-// Function to print the best path with fares
-void printPathWithFares(const std::vector<int>& bestPath, const TFTFGraph& jeepneyNetwork, int timeOfDay) {
-    std::cout << "Best path (with fares): ";
-    float totalFare = 0.0f;
-
-    for (size_t i = 0; i < bestPath.size() - 1; ++i) {
-        int from = bestPath[i];
-        int to = bestPath[i + 1];
-        float segmentFare = jeepneyNetwork.getEdge(from, to)->fare;  // Get the fare for this segment
-        totalFare += segmentFare;
-
-        std::cout << from;
-        if (i < bestPath.size() - 2) std::cout << " -> ";
-    }
-    std::cout << "\nTotal fare: PHP " << totalFare << std::endl;
-}
 
 int main() {
     TFTFGraph jeepneyNetwork;
@@ -78,23 +63,29 @@ int main() {
     // Create transfers based on proximity (e.g., 200 meters)
     jeepneyNetwork.createTransfersFromCoordinates(200.0f);
 
-    // Precompute hop distances and visualize
-    jeepneyNetwork.precomputeHopDistances();
-    jeepneyNetwork.printHopDistances();
     jeepneyNetwork.visualize();
     jeepneyNetwork.visualize(8);
     jeepneyNetwork.visualize(14);
     jeepneyNetwork.visualize(23);
 
-    // Longer and multiple-hop path tests
-    printPathWithFares(jeepneyNetwork.findBestPath(1, 5, 8), jeepneyNetwork, 8);  // Morning (Longer path)
-    printPathWithFares(jeepneyNetwork.findBestPath(1, 6, 14), jeepneyNetwork, 14); // Afternoon (Multiple hops)
-    printPathWithFares(jeepneyNetwork.findBestPath(1, 7, 23), jeepneyNetwork, 23); // Late night (Long journey)
-    printPathWithFares(jeepneyNetwork.findBestPath(1, 8, 17), jeepneyNetwork, 17); // Peak hour (Rush hour path)
-    printPathWithFares(jeepneyNetwork.findBestPath(2, 8, 20), jeepneyNetwork, 20); // Evening rush (Long path)
-    printPathWithFares(jeepneyNetwork.findBestPath(4, 6, 10), jeepneyNetwork, 10); // Midday path (Simple hop)
-    printPathWithFares(jeepneyNetwork.findBestPath(5, 3, 16), jeepneyNetwork, 16); // Mid-afternoon (Intermediate path)
-    printPathWithFares(jeepneyNetwork.findBestPath(2, 4, 6), jeepneyNetwork, 6);  // Early morning (Shorter path)
+    // Test case: Use specific coordinates to find best path
+    Coordinate startCoord1 = {14.5995, 120.9842};  // Start coordinates (route 1)
+    Coordinate endCoord1 = {14.6010, 120.9860};    // End coordinates (route 2)
+    int hour = 8;  // Morning hour
+
+    std::vector<TFTFEdge> bestPath1 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord1, endCoord1, hour);
+
+    Coordinate startCoord2 = {14.6050, 120.9900};  // Start coordinates (route 5)
+    Coordinate endCoord2 = {14.6005, 120.9852};    // End coordinates (route 8)
+    int hour2 = 14;  // Afternoon hour
+
+    std::vector<TFTFEdge> bestPath2 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord2, endCoord2, hour2);
+
+    Coordinate startCoord3 = {14.6030, 120.9880};  // Start coordinates (route 3)
+    Coordinate endCoord3 = {14.6020, 120.9870};    // End coordinates (route 7)
+    int hour3 = 20;  // Evening hour
+
+    std::vector<TFTFEdge> bestPath3 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord3, endCoord3, hour3);
 
     return 0;
 }

@@ -90,3 +90,32 @@ float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, 
     return BASE_FARE + distanceKm * FARE_PER_KM;
 }
 
+double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
+    double totalFare = 0.0;
+
+    // If the path is empty, return 0 fare
+    if (path.empty()) {
+        return totalFare;
+    }
+
+    // First segment: from the start coordinate to the exit coordinate of the first edge
+    std::vector<Coordinate> edgeCoordinates;
+    for (const auto& edge : path) {
+        edgeCoordinates.push_back(edge.entryCoord);
+        edgeCoordinates.push_back(edge.exitCoord);
+    }
+    totalFare += computeSegmentFare(edgeCoordinates, startCoord, path[0].exitCoord);
+
+    // Intermediate segments: from the entry to the exit coordinate of each edge
+    for (size_t i = 1; i < path.size(); ++i) {
+        std::vector<Coordinate> edgeCoordinates = {path[i-1].entryCoord, path[i].exitCoord};
+        totalFare += computeSegmentFare(edgeCoordinates, path[i-1].entryCoord, path[i].exitCoord);
+    }
+
+    // Last segment: from the entry coordinate of the last edge to the end coordinate
+    std::vector<Coordinate> lastEdgeCoordinates = {path.back().entryCoord, path.back().exitCoord};
+    totalFare += computeSegmentFare(lastEdgeCoordinates, path.back().entryCoord, endCoord);
+
+    return totalFare;
+}
+

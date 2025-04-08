@@ -57,21 +57,17 @@ public:
         float transferCost, 
         const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
     void visualize(int hour = -1) const;
-    std::vector<int> findBestPath(int startRoute, int endRoute, int hour = -1);
-    void precomputeHopDistances();
-    float heuristic(int current, int target);
-    void printHopDistances() const;
+    std::vector<TFTFEdge> findBestPath(int startRoute, int endRoute, int hour = -1);
     void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
     void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
     void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
     TFTFEdge* getEdge(int fromRoute, int toRoute) const;
-
+    int findClosestRoute(const Coordinate& startCoord);
+    std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
 
 
 private:
     std::unordered_map<int, RouteNode> routes;
-    std::unordered_map<int, std::unordered_map<int, int>> hopDistance;
-    float minEdgeCost = std::numeric_limits<float>::infinity();
 
 };
 

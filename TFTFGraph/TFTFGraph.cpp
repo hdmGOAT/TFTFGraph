@@ -82,11 +82,6 @@ void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
     routes[fromRoute].edges.push_back({toRoute, toName, transferCost, avgDensity});
     routes[fromRoute].edges.back().entryCoord = entryCoord;
     routes[fromRoute].edges.back().exitCoord = exitCoord;
-
-    // Add edge to -> from (reverse direction)
-    routes[toRoute].edges.push_back({fromRoute, routes[fromRoute].routeName, transferCost, avgDensity});
-    routes[toRoute].edges.back().entryCoord = entryCoord;
-    routes[toRoute].edges.back().exitCoord = exitCoord;
 }
 
 
@@ -175,169 +170,68 @@ void TFTFGraph::visualize(int hour) const
         }
     }
 
-    float TFTFGraph::heuristic(int current, int target) {
-        if (hopDistance.count(current) && hopDistance[current].count(target)) {
-            int hops = hopDistance[current][target];
-            return hops * minEdgeCost;
-        }
-        return 0.0f; // Default heuristic if no hop distance is available
+
+std::vector<TFTFEdge> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour) {
+    using PQNode = std::pair<float, int>;
+    std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> dijkstraPQ;
+    
+    std::unordered_map<int, float> dijkstraCost;
+    std::unordered_map<int, TFTFEdge> dijkstraPrevEdge;      // edge used to reach this node
+    std::unordered_map<int, int> prevRouteMap;               // previous node ID
+    std::unordered_set<int> dijkstraVisited;
+    
+    for (const auto &[id, _] : routes) {
+        dijkstraCost[id] = std::numeric_limits<float>::infinity();
     }
     
+    dijkstraCost[startRouteId] = 0.0f;
+    dijkstraPQ.push({0.0f, startRouteId});
     
-    void TFTFGraph::precomputeHopDistances() {
-        hopDistance.clear();
-        minEdgeCost = std::numeric_limits<float>::infinity();
-    
-        for (const auto& [sourceId, _] : routes) {
-            std::queue<int> q;
-            std::unordered_map<int, int> visited;
-            q.push(sourceId);
-            visited[sourceId] = 0;
-    
-            while (!q.empty()) {
-                int current = q.front();
-                q.pop();
-    
-                for (const auto& edge : routes[current].edges) {
-                    if (!visited.count(edge.destinationRoute)) {
-                        visited[edge.destinationRoute] = visited[current] + 1;
-                        q.push(edge.destinationRoute);
-                    }
-
-                    float cost = edge.totalCost();
-                    if (cost < minEdgeCost) {
-                        minEdgeCost = cost;
-                    }
-                }
-            }
-    
-            hopDistance[sourceId] = visited;
-        }
-    
-        if (minEdgeCost == std::numeric_limits<float>::infinity()) {
-            minEdgeCost = 1.0f;
-        }
-    }
-
-    void TFTFGraph::printHopDistances() const {
-        std::cout << "\n--- Hop Distances (BFS) ---\n";
-        for (const auto& [from, innerMap] : hopDistance) {
-            for (const auto& [to, hops] : innerMap) {
-                std::cout << "From " << from << " to " << to << ": " << hops << " hops\n";
+    while (!dijkstraPQ.empty()) {
+        auto [currCost, currRouteId] = dijkstraPQ.top();
+        dijkstraPQ.pop();
+        
+        if (dijkstraVisited.count(currRouteId))
+            continue;
+        
+        dijkstraVisited.insert(currRouteId);
+        
+        if (currRouteId == endRouteId)
+            break;
+        
+        for (const auto &edge : routes.at(currRouteId).edges) {
+            float edgeCost = edge.totalCost(hour);
+            float newCost = currCost + edgeCost;
+            
+            if (newCost < dijkstraCost[edge.destinationRoute]) {
+                dijkstraCost[edge.destinationRoute] = newCost;
+                dijkstraPrevEdge[edge.destinationRoute] = edge;
+                prevRouteMap[edge.destinationRoute] = currRouteId;
+                dijkstraPQ.push({newCost, edge.destinationRoute});
             }
         }
     }
 
-    std::vector<int> TFTFGraph::findBestPath(int startRouteId, int endRouteId, int hour)
-    {
-        using PQNode = std::pair<float, int>;
-        std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> forwardPQ, backwardPQ;
-    
-        std::unordered_map<int, float> forwardCost, backwardCost;
-        std::unordered_map<int, int> forwardPrev, backwardPrev;
-        std::unordered_set<int> forwardVisited, backwardVisited;
-    
-        for (const auto &[id, _] : routes)
-        {
-            forwardCost[id] = std::numeric_limits<float>::infinity();
-            backwardCost[id] = std::numeric_limits<float>::infinity();
-        }
-    
-        forwardCost[startRouteId] = 0.0f;
-        backwardCost[endRouteId] = 0.0f;
-    
-        forwardPQ.push({0.0f, startRouteId});
-        backwardPQ.push({0.0f, endRouteId});
-    
-        int meetingPoint = -1;
-        float bestPathCost = std::numeric_limits<float>::infinity();
-    
-        while (!forwardPQ.empty() && !backwardPQ.empty()){
-            if (!forwardPQ.empty()) {
-                auto [currCost, currRouteId] = forwardPQ.top();
-                forwardPQ.pop();
-    
-                if (forwardVisited.count(currRouteId))
-                    continue;
-                forwardVisited.insert(currRouteId);
-    
-                if (backwardVisited.count(currRouteId))
-                {
-                    meetingPoint = currRouteId;
-                    bestPathCost = std::min(bestPathCost, forwardCost[currRouteId] + backwardCost[currRouteId]);
-                    break;
-                }
-    
-                for (const auto &edge : routes.at(currRouteId).edges)
-                {
-                    float edgeCost = edge.totalCost(hour);
-                    float newCost = currCost + edgeCost;
-    
-                    if (newCost < forwardCost[edge.destinationRoute])
-                    {
-                        forwardCost[edge.destinationRoute] = newCost;
-                        forwardPrev[edge.destinationRoute] = currRouteId;
-                        forwardPQ.push({newCost + heuristic(edge.destinationRoute, endRouteId), edge.destinationRoute});
-                    }
-                }
-            }
-    
-            if (!backwardPQ.empty())
-            {
-                auto [currCost, currRouteId] = backwardPQ.top();
-                backwardPQ.pop();
-    
-                if (backwardVisited.count(currRouteId))
-                    continue;
-                backwardVisited.insert(currRouteId);
-    
-                if (forwardVisited.count(currRouteId))
-                {
-                    meetingPoint = currRouteId;
-                    bestPathCost = std::min(bestPathCost, forwardCost[currRouteId] + backwardCost[currRouteId]);
-                    break;
-                }
-    
-                for (const auto &edge : routes.at(currRouteId).edges)
-                {
-                    float edgeCost = edge.totalCost(hour);
-                    float newCost = currCost + edgeCost;
-    
-                    if (newCost < backwardCost[edge.destinationRoute])
-                    {
-                        backwardCost[edge.destinationRoute] = newCost;
-                        backwardPrev[edge.destinationRoute] = currRouteId;
-                        backwardPQ.push({newCost + heuristic(edge.destinationRoute, startRouteId), edge.destinationRoute});
-                    }
-                }
-            }
-        }
-    
-        if (meetingPoint == -1)
-        {
-            std::cout << "No path found between routes " << startRouteId << " and " << endRouteId << std::endl;
+    // Reconstruct path
+    std::vector<TFTFEdge> pathEdges;
+    int currentRouteId = endRouteId;
+
+    while (currentRouteId != startRouteId) {
+        if (dijkstraPrevEdge.find(currentRouteId) == dijkstraPrevEdge.end()) {
+            std::cout << "No valid path found.\n";
             return {};
         }
-    
-        std::vector<int> path;
-        for (int at = meetingPoint; at != startRouteId; at = forwardPrev[at])
-        {
-            path.push_back(at);
-        }
-        path.push_back(startRouteId);
-        std::reverse(path.begin(), path.end());
-    
-        if (!path.empty() && path.back() == meetingPoint)
-            path.pop_back();
-    
-        for (int at = meetingPoint; at != endRouteId; at = backwardPrev[at])
-        {
-            path.push_back(at);
-        }//aa
-        path.push_back(endRouteId);
-    
-        return path;
+
+        pathEdges.push_back(dijkstraPrevEdge[currentRouteId]);
+        currentRouteId = prevRouteMap[currentRouteId];
     }
+
+    std::reverse(pathEdges.begin(), pathEdges.end());
+
+    
+    return pathEdges;
+}
+
 
 TFTFEdge* TFTFGraph::getEdge(int fromRoute, int toRoute) const {
     // Check if the 'fromRoute' exists in the routes map
@@ -353,3 +247,73 @@ TFTFEdge* TFTFGraph::getEdge(int fromRoute, int toRoute) const {
     return nullptr;  // Return nullptr if no matching edge is found
 }
     
+int TFTFGraph::findClosestRoute(const Coordinate& startCoord) {
+    float closestDistance = std::numeric_limits<float>::infinity();
+    int closestRouteId = -1;
+
+    for (const auto& [routeId, routeNode] : routes) {
+        // Assume that we are using the first coordinate in the route as the closest point
+        float dist = haversine(routeNode.path.front(), startCoord); // Compare with the first coordinate in path
+        if (dist < closestDistance) {
+            closestDistance = dist;
+            closestRouteId = routeId;
+        }
+    }
+
+    return closestRouteId;
+}
+
+// Function to calculate route based on coordinates
+std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour) {
+    int startRouteId = findClosestRoute(startCoord);
+    int endRouteId = findClosestRoute(endCoord);
+
+    if (startRouteId == -1 || endRouteId == -1) {
+        std::cerr << "Could not find a route for the given coordinates." << std::endl;
+        return {};
+    }
+
+    std::cout << "Closest route from start: " << startRouteId << "\n";
+    std::cout << "Closest route from end: " << endRouteId << "\n";
+
+    std::vector<TFTFEdge> path = findBestPath(startRouteId, endRouteId, hour);
+
+    // Inject dummy start edge
+    if (!path.empty()) {
+        TFTFEdge startEdge;
+        startEdge.destinationRoute = path.front().destinationRoute;  // first hop's destination
+        startEdge.destinationRouteName = routes[startRouteId].routeName;
+        startEdge.transferCost = 0.0f;
+        startEdge.densityByInterval = {};
+        startEdge.entryCoord = startCoord;
+        startEdge.exitCoord = path.front().entryCoord;
+        path.insert(path.begin(), startEdge);
+    }
+
+    // Inject dummy end edge
+    if (!path.empty()) {
+        TFTFEdge endEdge;
+        endEdge.destinationRoute = -1;  // -1 indicates no further route
+        endEdge.destinationRouteName = "Destination";
+        endEdge.transferCost = 0.0f;
+        endEdge.densityByInterval = {};
+        endEdge.entryCoord = path.back().exitCoord;
+        endEdge.exitCoord = endCoord;
+        path.push_back(endEdge);
+    }
+
+    // Print path
+    std::cout << "Best Path: ";
+    for (const auto& edge : path) {
+        std::cout << " -> " << edge.destinationRouteName;
+    }
+    std::cout << std::endl;
+
+    // Fare (skip dummy start/end edges)
+    float totalFare = 0.0f;
+    calculateTotalFare(path, startCoord, endCoord);
+
+    std::cout << "Total fare: " << std::fixed << std::setprecision(2) << totalFare << " pesos" << std::endl;
+
+    return path;
+}

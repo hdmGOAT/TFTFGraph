@@ -11,4 +11,6 @@ int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate
 float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate& start, const Coordinate& end);
 float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit);
 float computePathDistance(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit);
+double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
+
 #endif
