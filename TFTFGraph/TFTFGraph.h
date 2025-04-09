@@ -45,22 +45,22 @@ struct RouteNode {
 };
 
 class TFTFGraph {
-public:
-    void addRoute(int id, const std::string& name);
-    void addEdge(int fromRoute, int toRoute, const std::string &toName,
-        float transferCost, 
-        const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
-    void visualize(int hour = -1) const;
-    void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
-    void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
-    void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
-    int findClosestRoute(const Coordinate& startCoord);
-    std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
-    double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
-    std::vector<const RouteNode*> extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const;
-    std::vector<TFTFEdge> findMinTransfersPath(int startRouteId, int endRouteId, int hour = -1); 
-private:
-    std::unordered_map<int, RouteNode> routes;
+    public:
+        void addRoute(int id, const std::string& name);
+        void addEdge(int fromRoute, int toRoute, const std::string &toName,
+            float transferCost, 
+            const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
+        void visualize(int hour = -1) const;
+        void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
+        void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
+        void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
+        int findClosestRoute(const Coordinate& startCoord);
+        std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
+        double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
+        std::vector<const RouteNode*> extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const;
+        std::vector<TFTFEdge> findMinTransfersPath(int startRouteId, int endRouteId, int hour = -1); 
+    private:
+        std::unordered_map<int, RouteNode> routes;
 
 };
 
