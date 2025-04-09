@@ -3,8 +3,6 @@
 #include "helpers.h"
 #include "../TFTFGraph.h"
 
-
-
 float haversine(const Coordinate& a, const Coordinate& b)  {
     auto deg2rad = [](double deg) {
         return deg * M_PI / 180.0;
@@ -70,19 +68,6 @@ float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate
     return distance;
 }
 
-float computePathDistance(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit) {
-    int start = closestCoordinateIndex(path, entry);
-    int end = closestCoordinateIndex(path, exit);
-
-    if (start > end) std::swap(start, end);
-
-    float totalDist = 0.0f;
-    for (int i = start; i < end; ++i) {
-        totalDist += haversine(path[i], path[i + 1]);
-    }
-
-    return totalDist; // in meters
-}
 float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath) {
     if (routePath.empty()) return 0.0f;
 

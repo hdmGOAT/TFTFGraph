@@ -225,8 +225,8 @@ std::vector<TFTFEdge> TFTFGraph::findBestPath(int startRouteId, int endRouteId, 
     std::priority_queue<PQNode, std::vector<PQNode>, std::greater<PQNode>> dijkstraPQ;
     
     std::unordered_map<int, float> dijkstraCost;
-    std::unordered_map<int, TFTFEdge> dijkstraPrevEdge;      // edge used to reach this node
-    std::unordered_map<int, int> prevRouteMap;               // previous node ID
+    std::unordered_map<int, TFTFEdge> dijkstraPrevEdge;      
+    std::unordered_map<int, int> prevRouteMap;               
     std::unordered_set<int> dijkstraVisited;
     
     for (const auto &[id, _] : routes) {
