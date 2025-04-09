@@ -11,6 +11,10 @@
 #include <algorithm>
 #include "Helpers/helpers.h"
 
+bool operator==(const Coordinate& lhs, const Coordinate& rhs) {
+    return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude;
+}
+
 std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensity>& a,
     const std::vector<JeepneyDensity>& b) {
     std::vector<JeepneyDensity> result;
@@ -83,28 +87,52 @@ void TFTFGraph::addEdge(int fromRoute, int toRoute, const std::string &toName,
     routes[fromRoute].edges.back().entryCoord = entryCoord;
     routes[fromRoute].edges.back().exitCoord = exitCoord;
 }
+std::vector<const RouteNode*> TFTFGraph::extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const {
+    std::vector<const RouteNode*> routeNodes;
 
-double TFTFGraph::calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
-    double totalFare = 0.0;
+    if (path.empty()) return routeNodes;
 
-    std::vector<RouteNode> takenRoutes;
-    int startRouteId = -1;
-    if (!path.empty()) {
-    for (const auto& [routeId, routeNode] : routes) {
-        for (const auto& edge : routeNode.edges) {
-            if (edge.destinationRoute == path[0].destinationRoute &&
-                edge.entryCoord == path[0].entryCoord &&
-                edge.exitCoord == path[0].exitCoord) {
-                startRouteId = routeId;
-                break;
-            }
-        }
-        if (startRouteId != -1) break;
+    if (routes.count(path.front().originRoute)) {
+        routeNodes.push_back(&routes.at(path.front().originRoute));
     }
 
+    for (const auto& edge : path) {
+        if (routes.count(edge.destinationRoute)) {
+            routeNodes.push_back(&routes.at(edge.destinationRoute));
+        }
+    }
+
+    return routeNodes;
 }
+
+double TFTFGraph::calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord) {
+    double distance = 0.0;
+    double totalFare = 0.0;
+
+    std::vector<const RouteNode*> takenRoutes = extractTraversedRouteNodes(path);
+    totalFare = BASE_FARE * takenRoutes.size(); 
+    if (takenRoutes.empty()) return distance;
+
+    for (size_t i = 0; i < path.size(); ++i) {
+        const TFTFEdge& edge = path[i];
+        
+        if (i == 0) {
+            
+            distance += getActualSegmentDistance(startCoord, edge.exitCoord, takenRoutes[0]->path);
+
+        } else if (i == path.size() - 1) {
+            distance += getActualSegmentDistance(edge.entryCoord, endCoord, takenRoutes.back()->path);
+
+        } else {
+
+            distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path);
+        } 
+    }
+
+    totalFare += ((distance / 1000.0) * FARE_PER_KM); 
     return totalFare;
 }
+
 
 
 void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities) {
@@ -133,7 +161,6 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
                             }
                         }
                         if (!exists) {
-                            float fare = computeSegmentFare(routes[fromId].path, fromCoord, toCoord);
 
                             addEdge(fromId, toId, toNode.routeName, dist,  {}, fromCoord, toCoord);
 
@@ -234,7 +261,6 @@ std::vector<TFTFEdge> TFTFGraph::findBestPath(int startRouteId, int endRouteId, 
         }
     }
 
-    // Reconstruct path
     std::vector<TFTFEdge> pathEdges;
     int currentRouteId = endRouteId;
 
@@ -254,28 +280,12 @@ std::vector<TFTFEdge> TFTFGraph::findBestPath(int startRouteId, int endRouteId, 
     return pathEdges;
 }
 
-
-TFTFEdge* TFTFGraph::getEdge(int fromRoute, int toRoute) const {
-    // Check if the 'fromRoute' exists in the routes map
-    if (routes.find(fromRoute) != routes.end()) {
-        // Look through all the edges of the 'fromRoute' route
-        for (const auto& edge : routes.at(fromRoute).edges) {
-            if (edge.destinationRoute == toRoute) {
-                // Return the pointer to the matching edge
-                return const_cast<TFTFEdge*>(&edge);  // We're modifying the returned object, hence the cast
-            }
-        }
-    }
-    return nullptr;  // Return nullptr if no matching edge is found
-}
-    
 int TFTFGraph::findClosestRoute(const Coordinate& startCoord) {
     float closestDistance = std::numeric_limits<float>::infinity();
     int closestRouteId = -1;
 
     for (const auto& [routeId, routeNode] : routes) {
-        // Assume that we are using the first coordinate in the route as the closest point
-        float dist = haversine(routeNode.path.front(), startCoord); // Compare with the first coordinate in path
+        float dist = haversine(routeNode.path.front(), startCoord); 
         if (dist < closestDistance) {
             closestDistance = dist;
             closestRouteId = routeId;
@@ -285,7 +295,6 @@ int TFTFGraph::findClosestRoute(const Coordinate& startCoord) {
     return closestRouteId;
 }
 
-// Function to calculate route based on coordinates
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour) {
     int startRouteId = findClosestRoute(startCoord);
     int endRouteId = findClosestRoute(endCoord);
@@ -300,10 +309,9 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate&
 
     std::vector<TFTFEdge> path = findBestPath(startRouteId, endRouteId, hour);
 
-    // Inject dummy start edge
     if (!path.empty()) {
         TFTFEdge startEdge;
-        startEdge.destinationRoute = path.front().destinationRoute;  // first hop's destination
+        startEdge.destinationRoute = path.front().destinationRoute; 
         startEdge.destinationRouteName = routes[startRouteId].routeName;
         startEdge.transferCost = 0.0f;
         startEdge.densityByInterval = {};
@@ -312,10 +320,9 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate&
         path.insert(path.begin(), startEdge);
     }
 
-    // Inject dummy end edge
     if (!path.empty()) {
         TFTFEdge endEdge;
-        endEdge.destinationRoute = -1;  // -1 indicates no further route
+        endEdge.destinationRoute = -1; 
         endEdge.destinationRouteName = "Destination";
         endEdge.transferCost = 0.0f;
         endEdge.densityByInterval = {};
@@ -324,16 +331,17 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate&
         path.push_back(endEdge);
     }
 
-    // Print path
     std::cout << "Best Path: ";
-    for (const auto& edge : path) {
-        std::cout << " -> " << edge.destinationRouteName;
+    for (size_t i = 0; i < path.size(); ++i) {
+        if (i > 0) {
+            std::cout << " -> ";
+        }
+        std::cout << path[i].destinationRouteName;
     }
     std::cout << std::endl;
 
-    // Fare (skip dummy start/end edges)
     float totalFare = 0.0f;
-    calculateTotalFare(path, startCoord, endCoord);
+    totalFare = calculateTotalFare(path, startCoord, endCoord);
 
     std::cout << "Total fare: " << std::fixed << std::setprecision(2) << totalFare << " pesos" << std::endl;
 

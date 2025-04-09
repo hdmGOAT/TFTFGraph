@@ -86,22 +86,9 @@ float computePathDistance(const std::vector<Coordinate>& path, Coordinate entry,
 float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath) {
     if (routePath.empty()) return 0.0f;
 
-    // Find index of the closest point to 'start'
-    auto findClosestIndex = [](const Coordinate& target, const std::vector<Coordinate>& path) {
-        int closestIdx = 0;
-        float minDist = std::numeric_limits<float>::max();
-        for (int i = 0; i < path.size(); ++i) {
-            float dist = haversine(target, path[i]);
-            if (dist < minDist) {
-                minDist = dist;
-                closestIdx = i;
-            }
-        }
-        return closestIdx;
-    };
 
-    int startIdx = findClosestIndex(start, routePath);
-    int endIdx = findClosestIndex(end, routePath);
+    int startIdx = closestCoordinateIndex(routePath, start);
+    int endIdx = closestCoordinateIndex(routePath, end);
 
     if (startIdx > endIdx) std::swap(startIdx, endIdx);  // Make sure we iterate forward
 
@@ -111,12 +98,6 @@ float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, c
     }
 
     return totalDist;
-}
-
-float computeSegmentFare(const std::vector<Coordinate>& path, Coordinate entry, Coordinate exit) {
-    float distanceMeters = getActualSegmentDistance(entry, exit, path);
-    float distanceKm = distanceMeters / 1000.0f;
-    return BASE_FARE + distanceKm * FARE_PER_KM;
 }
 
 
