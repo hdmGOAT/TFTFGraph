@@ -44,8 +44,6 @@ struct RouteNode {
     std::vector<JeepneyDensity> densities;
 };
 
-
-
 class TFTFGraph {
 public:
     void addRoute(int id, const std::string& name);
