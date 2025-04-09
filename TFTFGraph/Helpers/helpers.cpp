@@ -75,7 +75,7 @@ float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, c
     int startIdx = closestCoordinateIndex(routePath, start);
     int endIdx = closestCoordinateIndex(routePath, end);
 
-    if (startIdx > endIdx) std::swap(startIdx, endIdx);  // Make sure we iterate forward
+    if (startIdx > endIdx) std::swap(startIdx, endIdx); 
 
     float totalDist = 0.0f;
     for (int i = startIdx; i < endIdx; ++i) {
@@ -86,3 +86,34 @@ float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, c
 }
 
 
+Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) {
+    double minDistance = std::numeric_limits<double>::max();
+    Coordinate closestPoint;
+
+    for (size_t i = 0; i + 1 < path.size(); ++i) {
+        const Coordinate& A = path[i];
+        const Coordinate& B = path[i + 1];
+
+        double dx = B.longitude - A.latitude;
+        double dy = B.latitude - A.latitude;
+
+        double lengthSquared = dx * dx + dy * dy;
+        if (lengthSquared == 0.0) continue;  
+
+        double t = ((point.longitude - A.longitude) * dx + (point.latitude - A.latitude) * dy) / lengthSquared;
+        t = std::max(0.0, std::min(1.0, t)); 
+
+        Coordinate projection = {
+            A.latitude + t * dy,
+            A.latitude + t * dx
+        };
+
+        double d = haversine(point, projection);
+        if (d < minDistance) {
+            minDistance = d;
+            closestPoint = projection;
+        }
+    }
+
+    return closestPoint;
+}

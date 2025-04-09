@@ -10,5 +10,5 @@ float haversine(const Coordinate& a, const Coordinate& b);
 int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate& target);
 float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate& start, const Coordinate& end);
 float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath);
-
+Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) ;
 #endif

@@ -33,9 +33,8 @@ std::vector<JeepneyDensity> averageRouteDensities(const std::vector<JeepneyDensi
         }
     }
 
-    // Calculate average per hour
     for (int h = 0; h < 24; ++h) {
-        float dA = mapA.count(h) ? mapA[h] : 1.0f; // Default to 1.0 if missing
+        float dA = mapA.count(h) ? mapA[h] : 1.0f; 
         float dB = mapB.count(h) ? mapB[h] : 1.0f;
         float avg = (dA + dB) / 2.0f;
 
@@ -110,28 +109,28 @@ double TFTFGraph::calculateTotalFare(const std::vector<TFTFEdge>& path, const Co
     double totalFare = 0.0;
 
     std::vector<const RouteNode*> takenRoutes = extractTraversedRouteNodes(path);
-    totalFare = BASE_FARE * takenRoutes.size(); 
-    if (takenRoutes.empty()) return distance;
+    if (takenRoutes.empty()) return 0.0;
+
+    Coordinate projectedStart = projectOntoPath(startCoord, takenRoutes.front()->path);
+    Coordinate projectedEnd = projectOntoPath(endCoord, takenRoutes.back()->path);
 
     for (size_t i = 0; i < path.size(); ++i) {
         const TFTFEdge& edge = path[i];
-        
+
         if (i == 0) {
-            
-            distance += getActualSegmentDistance(startCoord, edge.exitCoord, takenRoutes[0]->path);
-
+            distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path);
         } else if (i == path.size() - 1) {
-            distance += getActualSegmentDistance(edge.entryCoord, endCoord, takenRoutes.back()->path);
-
+            distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path);
         } else {
-
             distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path);
-        } 
+        }
     }
 
-    totalFare += ((distance / 1000.0) * FARE_PER_KM); 
+    totalFare = BASE_FARE * takenRoutes.size();
+    totalFare += ((distance / 1000.0) * FARE_PER_KM);
     return totalFare;
 }
+
 
 
 
@@ -331,7 +330,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(const Coordinate&
         path.push_back(endEdge);
     }
 
-    std::cout << "Best Path: ";
+    std::cout << "Best Path: Start -> ";
     for (size_t i = 0; i < path.size(); ++i) {
         if (i > 0) {
             std::cout << " -> ";
