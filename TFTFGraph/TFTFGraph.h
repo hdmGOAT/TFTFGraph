@@ -32,6 +32,9 @@ struct TFTFEdge {
     std::vector<JeepneyDensity> densityByInterval;
     Coordinate entryCoord;
     Coordinate exitCoord;
+    int entryIndex = -1;
+    int exitIndex = -1;
+
 
     float totalCost(int hour = -1) const;
 };

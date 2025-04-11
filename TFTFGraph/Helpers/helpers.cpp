@@ -117,3 +117,18 @@ Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate
 
     return closestPoint;
 }
+
+int getClosestIndex(const std::vector<Coordinate>& path, const Coordinate& coord) {
+    float minDist = std::numeric_limits<float>::infinity();
+    int index = -1;
+
+    for (size_t i = 0; i < path.size(); ++i) {
+        float dist = haversine(coord, path[i]);
+        if (dist < minDist) {
+            minDist = dist;
+            index = static_cast<int>(i);
+        }
+    }
+
+    return index;
+}

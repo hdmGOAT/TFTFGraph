@@ -103,12 +103,22 @@ void TFTFGraph::addEdge(
     // calculate the average density between the two routes for each hour
     std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities, routes[toRoute].densities);
 
+    int entryIndex = getClosestIndex(routes[fromRoute].path, entryCoord);
+    int exitIndex = getClosestIndex(routes[toRoute].path, exitCoord);
+
+
     // add a new edge from 'fromRoute' to 'toRoute' with relevant information
     routes[fromRoute].edges.push_back({toRoute, fromRoute, toName, transferCost, avgDensity});
 
     // set the entry and exit coordinates for the newly added edge
     routes[fromRoute].edges.back().entryCoord = entryCoord;
     routes[fromRoute].edges.back().exitCoord = exitCoord;
+
+    
+    //set the entry and exit indices for the newly added edge
+    routes[fromRoute].edges.back().entryIndex = entryIndex;
+    routes[fromRoute].edges.back().exitIndex = exitIndex;
+    
 }
 
 std::vector<const RouteNode*> TFTFGraph::extractTraversedRouteNodes(
@@ -299,6 +309,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
     struct TransferInfo {
         int transfers; // the number of transfers
         float cost;    // the total cost to reach the route
+        int lastCoordIndex = -1; // the index of the last coordinate in the path
     };
 
     // maps for storing the best (minimum) transfers and cost for each route,
@@ -315,7 +326,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
     // initialize all routes with a "worst-case" transfer count and cost.
     // set each route's best transfer count to max and cost to infinity.
     for (const auto& [routeId, _] : routes) {
-        best[routeId] = {std::numeric_limits<int>::max(), std::numeric_limits<float>::infinity()};
+        best[routeId] = {std::numeric_limits<int>::max(), std::numeric_limits<float>::infinity(), -1};
     }
 
     // start route has 0 transfers and 0 cost.
@@ -332,30 +343,33 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
 
         // iterate through each edge from the current route.
         for (const auto& edge : routes.at(curr).edges) {
-            int next = edge.destinationRoute;  // next route to consider.
-            float edgeCost = edge.totalCost(hour);  // calculate the transfer cost for this edge.
-            int nextTransfers = best[curr].transfers + 1;  // the number of transfers needed to get to the next route.
-            float nextCost = best[curr].cost + edgeCost;   // the total cost to reach the next route.
+            int next = edge.destinationRoute;
 
-            // check if we've found a better route (fewer transfers or lower cost).
-            if (
-                nextTransfers < best[next].transfers ||  // fewer transfers is better.
-                (nextTransfers == best[next].transfers && nextCost < best[next].cost) // if transfers are the same, choose the cheaper one.
-            ) {
-                // update the best transfer count and cost for the next route.
-                best[next] = {nextTransfers, nextCost};
-                // store the edge that leads to the next route.
+            // Get the index of the current edge's exit coordinate
+            int currIndex = edge.entryIndex;
+
+            // Skip backward or redundant transfers
+            if (currIndex <= best[curr].lastCoordIndex) {
+                continue;
+            }
+
+            float edgeCost = edge.totalCost(hour);
+            int nextTransfers = best[curr].transfers + 1;
+            float nextCost = best[curr].cost + edgeCost;
+
+            if (nextTransfers < best[next].transfers ||
+                (nextTransfers == best[next].transfers && nextCost < best[next].cost)) {
+                best[next] = {nextTransfers, nextCost, edge.exitIndex};
                 prevEdge[next] = edge;
-                // store the route that leads to the next route.
                 prevRoute[next] = curr;
 
-                // if the next route is not in the queue, add it for further processing.
                 if (!inQueue.count(next)) {
                     q.push(next);
                     inQueue.insert(next);
                 }
             }
         }
+
     }
 
     // reconstruct the path from the end route to the start route.
