@@ -12,4 +12,5 @@ float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate
 double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& path, bool isLoop);
 Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) ;
 int getClosestIndex(const std::vector<Coordinate>& path, const Coordinate& coord);
+float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, bool isLoop);
 #endif

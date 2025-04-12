@@ -6,6 +6,12 @@
 #include <unordered_map>
 #include <limits>
 
+struct PairHash {
+    std::size_t operator()(const std::pair<int, int>& p) const noexcept {
+        return std::hash<int>()(p.first) ^ (std::hash<int>()(p.second) << 1);
+    }
+};
+
 struct Coordinate {
     double latitude;
     double longitude;
@@ -62,6 +68,7 @@ class TFTFGraph {
         std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
         double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
         std::vector<const RouteNode*> extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const;
+            std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId, int hour);
         std::vector<TFTFEdge> findMinTransfersPath(int startRouteId, int endRouteId, int hour = -1); 
     private:
         std::unordered_map<int, RouteNode> routes;

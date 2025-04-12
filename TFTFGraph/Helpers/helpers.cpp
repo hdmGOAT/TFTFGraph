@@ -97,6 +97,24 @@ double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, 
     return distance;
 }
 
+float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, bool isLoop) {
+    float total = 0.0f;
+    if (i1 == i2) return 0.0f;
+
+    if (!isLoop || i1 < i2) {
+        for (int i = i1; i < i2; ++i) {
+            total += haversine(coords[i], coords[i + 1]);
+        }
+    } else {
+        for (int i = i1; i + 1 < coords.size(); ++i) {
+            total += haversine(coords[i], coords[i + 1]);
+        }
+        for (int i = 0; i < i2; ++i) {
+            total += haversine(coords[i], coords[i + 1]);
+        }
+    }
+    return total;
+}
 
 
 

@@ -82,6 +82,7 @@ void TFTFGraph::addRoute(int routeId, const std::string& routeName) {
 }
 
 // sets the path (sequence of coordinates) for a given route
+// TO MAKE LOOP MAKE LAST COORD === TO FIRST COORD
 void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordinates) {
     if (routes.find(routeId) != routes.end()) {
         routes[routeId].path = coordinates;
@@ -400,6 +401,111 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
     return path;
 }
 
+std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
+    int startRouteId,
+    int endRouteId,
+    int hour) {
+
+    constexpr float BASE_FARE = 12.0f;
+    constexpr float FARE_PER_KM = 1.5f;
+
+    struct FareState {
+        float totalFare;
+        int lastCoordIndex;
+    };
+
+    struct FareNode {
+        int routeId;
+        int entryIndex;
+        float fareSoFar;
+        int lastCoordIndex;
+
+        bool operator>(const FareNode& other) const {
+            return fareSoFar > other.fareSoFar;
+        }
+    };
+
+    // Best[routeId][entryIndex] = FareState
+    std::unordered_map<int, std::unordered_map<int, FareState>> best;
+    std::unordered_map<std::pair<int, int>, TFTFEdge, PairHash> prevEdge;
+    std::unordered_map<std::pair<int, int>, std::pair<int, int>, PairHash> prevRoute;
+
+    std::priority_queue<FareNode, std::vector<FareNode>, std::greater<FareNode>> pq;
+
+    // Start with 0 fare, unknown entry index yet
+    best[startRouteId][-1] = {0.0f, -1};
+    pq.push({startRouteId, -1, 0.0f, -1});
+
+    while (!pq.empty()) {
+        FareNode curr = pq.top(); pq.pop();
+        int routeId = curr.routeId;
+        int lastCoord = curr.lastCoordIndex;
+        float fareSoFar = curr.fareSoFar;
+
+        for (const TFTFEdge& edge : routes.at(routeId).edges) {
+            int nextRoute = edge.destinationRoute;
+            int entry = edge.entryIndex;
+            int exit = edge.exitIndex;
+            bool isLoop = routes.at(routeId).isLoop;
+
+            // Prevent backward movement on non-loop routes
+            if (!isLoop && lastCoord != -1 && entry <= lastCoord) continue;
+
+            float distance = getSubpathDistance(routes.at(routeId).path, entry, exit, isLoop);
+            float fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
+
+            // If it's a transfer (different route), we start a new fare leg
+            if (nextRoute != routeId && lastCoord != -1) {
+                // new leg: fare starts fresh with base fare
+                distance = getSubpathDistance(routes.at(nextRoute).path, edge.entryIndex, edge.exitIndex, routes.at(nextRoute).isLoop);
+                fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
+            }
+
+            float nextFare = fareSoFar + fare;
+
+            auto& bestMap = best[nextRoute];
+            if (!bestMap.count(exit) || nextFare < bestMap[exit].totalFare) {
+                bestMap[exit] = {nextFare, exit};
+                pq.push({nextRoute, entry, nextFare, exit});
+                prevEdge[{nextRoute, exit}] = edge;
+                prevRoute[{nextRoute, exit}] = {routeId, lastCoord};
+            }
+        }
+    }
+
+    // Reconstruct the path
+    std::vector<TFTFEdge> path;
+    const auto& endMap = best[endRouteId];
+    if (endMap.empty()) {
+        std::cout << "No fare-optimal path found.\n";
+        return {};
+    }
+
+    // Find best final exitIndex from the end route
+    auto minIt = std::min_element(endMap.begin(), endMap.end(),
+        [](const auto& a, const auto& b) {
+            return a.second.totalFare < b.second.totalFare;
+        });
+
+    int currRoute = endRouteId;
+    int currCoord = minIt->first;
+
+    while (currRoute != startRouteId || currCoord != -1) {
+        auto it = prevEdge.find({currRoute, currCoord});
+        if (it == prevEdge.end()) break;
+        const auto& edge = it->second;
+        path.push_back(edge);
+
+        auto prev = prevRoute[{currRoute, currCoord}];
+        currRoute = prev.first;
+        currCoord = prev.second;
+    }
+
+    std::reverse(path.begin(), path.end());
+    return path;
+}
+
+
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate& startCoord, 
     const Coordinate& endCoord, 
@@ -418,7 +524,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     std::cout << "Closest route from end: " << endRouteId << "\n";
 
     // find the path with the minimum transfers between the start and end route
-    std::vector<TFTFEdge> path = findMinTransfersPath(startRouteId, endRouteId, hour);
+    std::vector<TFTFEdge> path = findMinFarePath(startRouteId, endRouteId, hour);
 
     // if the path is not empty, create a start edge for the path
     if (!path.empty()) {
