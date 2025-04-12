@@ -64,7 +64,7 @@ class TFTFGraph {
         void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
         void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
         void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
-        int findClosestRoute(const Coordinate& startCoord);
+       std::vector<int> getNearbyRoutes(const Coordinate& coord, float maxDistanceMeters);
         std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
         double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
         std::vector<const RouteNode*> extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const;

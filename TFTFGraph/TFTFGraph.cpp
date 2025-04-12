@@ -1,3 +1,6 @@
+#define _USE_MATH_DEFINES
+#include <cmath>
+
 #include <iostream>
 #include <vector>
 #include <string>
@@ -149,14 +152,13 @@ std::vector<const RouteNode*> TFTFGraph::extractTraversedRouteNodes(
     return routeNodes;
 }
 
-
 // calculates the total fare for a given path based on distance and route nodes
 double TFTFGraph::calculateTotalFare(
     const std::vector<TFTFEdge>& path, 
     const Coordinate& startCoord, 
     const Coordinate& endCoord) {
-    
-        double distance = 0.0;  
+
+    double distance = 0.0;  
     double totalFare = 0.0; 
 
     // get the list of route nodes traversed by the path
@@ -175,14 +177,37 @@ double TFTFGraph::calculateTotalFare(
 
         // if it's the first edge, calculate distance from start to the first edge's exit
         if (i == 0) {
+            int startIdx = getClosestIndex(takenRoutes[0]->path, projectedStart);
+            int endIdx = getClosestIndex(takenRoutes[0]->path, edge.exitCoord);
+
+            // skip if segment would wrap around a non-loop route
+            if (!takenRoutes[0]->isLoop && startIdx > endIdx) {
+                continue;
+            }
+            
             distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
         }
         // if it's the last edge, calculate distance from the last edge's entry to the end
         else if (i == path.size() - 1) {
+            int startIdx = getClosestIndex(takenRoutes.back()->path, edge.entryCoord);
+            int endIdx = getClosestIndex(takenRoutes.back()->path, projectedEnd);
+
+            // skip if segment would wrap around a non-loop route
+            if (!takenRoutes.back()->isLoop && startIdx > endIdx) {
+                continue;
+            }
             distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
         }
         // for all other edges, calculate distance between entry and exit coordinates
         else {
+            int startIdx = getClosestIndex(takenRoutes[i]->path, edge.entryCoord);
+            int endIdx = getClosestIndex(takenRoutes[i]->path, edge.exitCoord);
+
+            // skip if segment would wrap around a non-loop route
+            if (!takenRoutes[i]->isLoop && startIdx > endIdx) {
+                continue;
+            }
+
             distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
         }
     }
@@ -194,6 +219,7 @@ double TFTFGraph::calculateTotalFare(
     return totalFare;
 }
 
+
 void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities) {
     if (routes.find(routeId) != routes.end()) {
         routes[routeId].densities = densities;
@@ -201,37 +227,53 @@ void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>
         std::cerr << "Route ID " << routeId << " not found.\n";
     }
 }
+std::pair<int, int> hashCoordinate(const Coordinate& coord, float cellSizeMeters) {
+    float latMeters = 111320.0f; // meters per degree latitude
+    float lonMeters = 111320.0f * std::cos(coord.latitude * M_PI / 180.0); // meters per degree longitude
 
-// creates transfer edges between routes based on the distance between coordinates
+    int x = static_cast<int>(coord.longitude * lonMeters / cellSizeMeters);
+    int y = static_cast<int>(coord.latitude * latMeters / cellSizeMeters);
+    return {x, y};
+}
+
 void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer) {
-    // loop through all pairs of routes to check for possible transfers
-    for (const auto& [fromId, fromNode] : routes) {
-        for (const auto& [toId, toNode] : routes) {
-            // skip creating transfers from a route to itself
-            if (fromId == toId) continue;
+    std::unordered_map<std::pair<int, int>, std::vector<std::pair<int, Coordinate>>, PairHash> spatialGrid;
 
-            // loop through the coordinates of the 'from' route node
-            for (const auto& fromCoord : fromNode.path) {
-                // loop through the coordinates of the 'to' route node
-                for (const auto& toCoord : toNode.path) {
-                    // calculate the distance between the two coordinates using the Haversine formula
-                    float dist = haversine(fromCoord, toCoord);
+    // Step 1: Populate the spatial grid
+    for (const auto& [routeID, route] : routes) {
+        for (const auto& coord : route.path) {
+            auto cell = hashCoordinate(coord, transferRangeMeters);
+            spatialGrid[cell].emplace_back(routeID, coord);
+        }
+    }
 
-                    // check if the distance is within the transfer range
-                    if (dist <= transferRangeMeters) {
-                        bool exists = false;
+    // Step 2: Check nearby cells for potential transfers
+    for (const auto& [fromID, fromRoute] : routes) {
+        for (const auto& fromCoord : fromRoute.path) {
+            auto baseCell = hashCoordinate(fromCoord, transferRangeMeters);
 
-                        // check if an edge already exists between these two routes with the same distance
-                        for (const auto& edge : fromNode.edges) {
-                            if (edge.destinationRoute == toId && std::abs(edge.transferCost - dist) < 1e-2f) {
-                                exists = true;  // transfer edge already exists
-                                break;
+            for (int dx = -1; dx <= 1; ++dx) {
+                for (int dy = -1; dy <= 1; ++dy) {
+                    std::pair<int, int> neighborCell = {baseCell.first + dx, baseCell.second + dy};
+                    auto it = spatialGrid.find(neighborCell);
+                    if (it == spatialGrid.end()) continue;
+
+                    for (const auto& [toID, toCoord] : it->second) {
+                        if (toID == fromID) continue;
+
+                        float dist = haversine(fromCoord, toCoord);
+                        if (dist <= transferRangeMeters) {
+                            bool exists = false;
+                            for (const auto& edge : routes[fromID].edges) {
+                                if (edge.destinationRoute == toID && std::abs(edge.transferCost - dist) < 1e-2f) {
+                                    exists = true;
+                                    break;
+                                }
                             }
-                        }
 
-                        // if no such edge exists, create a new transfer edge
-                        if (!exists) {
-                            addEdge(fromId, toId, toNode.routeName, dist, {}, fromCoord, toCoord);
+                            if (!exists) {
+                                addEdge(fromID, toID, routes[toID].routeName, dist, {}, fromCoord, toCoord);
+                            }
                         }
                     }
                 }
@@ -239,8 +281,6 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
         }
     }
 }
-
-
 void TFTFGraph::visualize(int hour) const
     {
         std::cout << "\nTFTF Graph Visualization";
@@ -288,20 +328,21 @@ void TFTFGraph::visualize(int hour) const
         }
     }
 
-int TFTFGraph::findClosestRoute(const Coordinate& startCoord) {
-    float closestDistance = std::numeric_limits<float>::infinity();
-    int closestRouteId = -1;
+std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate& coord, float maxDistanceMeters) {
+    std::vector<int> nearby;
 
-    for (const auto& [routeId, routeNode] : routes) {
-        float dist = haversine(routeNode.path.front(), startCoord); 
-        if (dist < closestDistance) {
-            closestDistance = dist;
-            closestRouteId = routeId;
+    for (const auto& [routeId, route] : routes) {
+        for (const auto& point : route.path) {
+            if (haversine(coord, point) <= maxDistanceMeters) {
+                nearby.push_back(routeId);
+                break; // only need one point close enough
+            }
         }
     }
 
-    return closestRouteId;
+    return nearby;
 }
+
 
 std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
     int startRouteId, 
@@ -504,68 +545,70 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     std::reverse(path.begin(), path.end());
     return path;
 }
-
-
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate& startCoord, 
     const Coordinate& endCoord, 
     int hour) {
     
-    int startRouteId = findClosestRoute(startCoord);
-    int endRouteId = findClosestRoute(endCoord);
+    std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
+    std::vector<int> endCandidates = getNearbyRoutes(endCoord, 300.0f);
 
-    if (startRouteId == -1 || endRouteId == -1) {
-        std::cerr << "Could not find a route for the given coordinates." << std::endl;
+    std::vector<TFTFEdge> bestPath;
+    double bestFare = std::numeric_limits<double>::infinity();
+    int bestStartRouteId = -1;
+    int bestEndRouteId = -1;
+
+    for (int startId : startCandidates) {
+        for (int endId : endCandidates) {
+            std::vector<TFTFEdge> path = findMinFarePath(startId, endId, hour);
+            if (path.empty()) continue;
+
+            double fare = calculateTotalFare(path, startCoord, endCoord);
+            if (fare < bestFare) {
+                bestFare = fare;
+                bestPath = path;
+                bestStartRouteId = startId;
+                bestEndRouteId = endId;
+            }
+        }
+    }
+
+    if (bestPath.empty()) {
+        std::cerr << "No valid route found between coordinates.\n";
         return {};
     }
 
-    // print the closest route IDs
-    std::cout << "Closest route from start: " << startRouteId << "\n";
-    std::cout << "Closest route from end: " << endRouteId << "\n";
+    // Create and insert a start edge
+    TFTFEdge startEdge;
+    startEdge.destinationRoute = bestPath.front().destinationRoute;
+    startEdge.destinationRouteName = routes[bestStartRouteId].routeName;
+    startEdge.transferCost = 0.0f;
+    startEdge.densityByInterval = {};
+    startEdge.entryCoord = startCoord;
+    startEdge.exitCoord = bestPath.front().entryCoord;
+    bestPath.insert(bestPath.begin(), startEdge);
 
-    // find the path with the minimum transfers between the start and end route
-    std::vector<TFTFEdge> path = findMinFarePath(startRouteId, endRouteId, hour);
+    // Create and insert an end edge
+    TFTFEdge endEdge;
+    endEdge.destinationRoute = -1;
+    endEdge.destinationRouteName = "Destination";
+    endEdge.transferCost = 0.0f;
+    endEdge.densityByInterval = {};
+    endEdge.entryCoord = bestPath.back().exitCoord;
+    endEdge.exitCoord = endCoord;
+    bestPath.push_back(endEdge);
 
-    // if the path is not empty, create a start edge for the path
-    if (!path.empty()) {
-        TFTFEdge startEdge;
-        startEdge.destinationRoute = path.front().destinationRoute; 
-        startEdge.destinationRouteName = routes[startRouteId].routeName;
-        startEdge.transferCost = 0.0f;
-        startEdge.densityByInterval = {};
-        startEdge.entryCoord = startCoord;
-        startEdge.exitCoord = path.front().entryCoord;
-        path.insert(path.begin(), startEdge); // insert the start edge at the beginning of the path
-    }
-
-    // if the path is not empty, create an end edge for the path
-    if (!path.empty()) {
-        TFTFEdge endEdge;
-        endEdge.destinationRoute = -1; 
-        endEdge.destinationRouteName = "Destination";
-        endEdge.transferCost = 0.0f;
-        endEdge.densityByInterval = {};
-        endEdge.entryCoord = path.back().exitCoord;
-        endEdge.exitCoord = endCoord;
-        path.push_back(endEdge); // add the end edge to the path
-    }
-
-    // print the best path
+    // Output best path
     std::cout << "Best Path: Start -> ";
-    for (size_t i = 0; i < path.size(); ++i) {
-        if (i > 0) {
-            std::cout << " -> ";
-        }
-        std::cout << path[i].destinationRouteName;
+    for (size_t i = 0; i < bestPath.size(); ++i) {
+        if (i > 0) std::cout << " -> ";
+        std::cout << bestPath[i].destinationRouteName;
     }
     std::cout << std::endl;
 
-    // calculate the total fare for the path
-    float totalFare = 0.0f;
-    totalFare = calculateTotalFare(path, startCoord, endCoord);
-
-    // print the total fare
+    // Output total fare
+    float totalFare = calculateTotalFare(bestPath, startCoord, endCoord);
     std::cout << "Total fare: " << std::fixed << std::setprecision(2) << totalFare << " pesos" << std::endl;
 
-    return path;
+    return bestPath;
 }

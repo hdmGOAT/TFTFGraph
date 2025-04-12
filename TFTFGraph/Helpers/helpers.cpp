@@ -75,12 +75,17 @@ double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, 
 
     double distance = 0.0;
 
+    // Prevent illegal wraparound
+    if (!isLoop && startIndex > endIndex) {
+        std::cerr << "Warning: Non-loop route but segment wraps around. Returning large distance.\n";
+        return 1e9;
+    }
+
     if (startIndex <= endIndex) {
         for (int i = startIndex; i < endIndex; ++i) {
             distance += haversine(path[i], path[i + 1]);
         }
-    } else if (isLoop) {
-        // allow wrap around
+    } else { // loop case
         for (int i = startIndex; i < path.size() - 1; ++i) {
             distance += haversine(path[i], path[i + 1]);
         }
@@ -88,14 +93,11 @@ double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, 
         for (int i = 0; i < endIndex; ++i) {
             distance += haversine(path[i], path[i + 1]);
         }
-    } else {
-        // invalid segment on non-looping route
-        std::cerr << "Warning: Non-loop route but segment wraps around. Returning large distance.\n";
-        return 1e9;
     }
 
     return distance;
 }
+
 
 float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, bool isLoop) {
     float total = 0.0f;
