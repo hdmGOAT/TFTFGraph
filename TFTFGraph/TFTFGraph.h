@@ -45,6 +45,7 @@ struct RouteNode {
     std::vector<TFTFEdge> edges;
     std::vector<Coordinate> path;
     std::vector<JeepneyDensity> densities;
+    bool isLoop = false; // indicates if the route is a loop
 };
 
 class TFTFGraph {

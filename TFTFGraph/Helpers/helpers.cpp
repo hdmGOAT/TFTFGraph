@@ -1,5 +1,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <iostream>
 #include "helpers.h"
 #include "../TFTFGraph.h"
 
@@ -68,22 +69,35 @@ float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate
     return distance;
 }
 
-float getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& routePath) {
-    if (routePath.empty()) return 0.0f;
+double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& path, bool isLoop) {
+    int startIndex = getClosestIndex(path, start);
+    int endIndex = getClosestIndex(path, end);
 
+    double distance = 0.0;
 
-    int startIdx = closestCoordinateIndex(routePath, start);
-    int endIdx = closestCoordinateIndex(routePath, end);
-
-    if (startIdx > endIdx) std::swap(startIdx, endIdx); 
-
-    float totalDist = 0.0f;
-    for (int i = startIdx; i < endIdx; ++i) {
-        totalDist += haversine(routePath[i], routePath[i + 1]);
+    if (startIndex <= endIndex) {
+        for (int i = startIndex; i < endIndex; ++i) {
+            distance += haversine(path[i], path[i + 1]);
+        }
+    } else if (isLoop) {
+        // allow wrap around
+        for (int i = startIndex; i < path.size() - 1; ++i) {
+            distance += haversine(path[i], path[i + 1]);
+        }
+        distance += haversine(path.back(), path[0]);
+        for (int i = 0; i < endIndex; ++i) {
+            distance += haversine(path[i], path[i + 1]);
+        }
+    } else {
+        // invalid segment on non-looping route
+        std::cerr << "Warning: Non-loop route but segment wraps around. Returning large distance.\n";
+        return 1e9;
     }
 
-    return totalDist;
+    return distance;
 }
+
+
 
 
 Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) {

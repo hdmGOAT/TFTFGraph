@@ -85,6 +85,8 @@ void TFTFGraph::addRoute(int routeId, const std::string& routeName) {
 void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate>& coordinates) {
     if (routes.find(routeId) != routes.end()) {
         routes[routeId].path = coordinates;
+        routes[routeId].isLoop = (!coordinates.empty() && coordinates.front() == coordinates.back());
+
     } else {
         std::cerr << "route ID " << routeId << " not found.\n";
     }
@@ -172,15 +174,15 @@ double TFTFGraph::calculateTotalFare(
 
         // if it's the first edge, calculate distance from start to the first edge's exit
         if (i == 0) {
-            distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path);
+            distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
         }
         // if it's the last edge, calculate distance from the last edge's entry to the end
         else if (i == path.size() - 1) {
-            distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path);
+            distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
         }
         // for all other edges, calculate distance between entry and exit coordinates
         else {
-            distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path);
+            distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
         }
     }
 
@@ -348,10 +350,12 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
             // Get the index of the current edge's exit coordinate
             int currIndex = edge.entryIndex;
 
-            // Skip backward or redundant transfers
-            if (currIndex <= best[curr].lastCoordIndex) {
-                continue;
-            }
+            bool isVisited = best[curr].lastCoordIndex != -1;
+            bool isBackwards = currIndex <= best[curr].lastCoordIndex;
+
+            if (!routes.at(curr).isLoop && isVisited && isBackwards) continue;
+
+
 
             float edgeCost = edge.totalCost(hour);
             int nextTransfers = best[curr].transfers + 1;
