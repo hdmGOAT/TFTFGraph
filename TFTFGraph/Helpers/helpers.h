@@ -13,4 +13,5 @@ double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, 
 Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) ;
 int getClosestIndex(const std::vector<Coordinate>& path, const Coordinate& coord);
 float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, bool isLoop);
+std::vector<Coordinate> densifyPath(const std::vector<Coordinate>& path, float spacingMeters) ;
 #endif

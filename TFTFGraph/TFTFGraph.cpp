@@ -240,8 +240,9 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
     std::unordered_map<std::pair<int, int>, std::vector<std::pair<int, Coordinate>>, PairHash> spatialGrid;
 
     // Step 1: Populate the spatial grid
-    for (const auto& [routeID, route] : routes) {
-        for (const auto& coord : route.path) {
+    for (auto& [routeID, route] : routes) {
+        auto densePath = densifyPath(route.path, 25.0f); // Every 25 meters
+        for (const auto& coord : densePath) {
             auto cell = hashCoordinate(coord, transferRangeMeters);
             spatialGrid[cell].emplace_back(routeID, coord);
         }

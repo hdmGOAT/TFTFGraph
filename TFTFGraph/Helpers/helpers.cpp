@@ -4,6 +4,30 @@
 #include "helpers.h"
 #include "../TFTFGraph.h"
 
+Coordinate interpolate(const Coordinate& start, const Coordinate& end, float t) {
+    float lat = start.latitude + t * (end.latitude - start.latitude);
+    float lon = start.longitude + t * (end.longitude - start.longitude);
+    return {lat, lon};
+}
+
+
+std::vector<Coordinate> densifyPath(const std::vector<Coordinate>& path, float spacingMeters) {
+    std::vector<Coordinate> result;
+    for (size_t i = 1; i < path.size(); ++i) {
+        const auto& start = path[i - 1];
+        const auto& end = path[i];
+        float dist = haversine(start, end);
+        int numPoints = std::max(1, static_cast<int>(dist / spacingMeters));
+        for (int j = 0; j < numPoints; ++j) {
+            float t = static_cast<float>(j) / numPoints;
+            result.push_back(interpolate(start, end, t));
+        }
+    }
+    result.push_back(path.back());
+    return result;
+}
+
+
 float haversine(const Coordinate& a, const Coordinate& b)  {
     auto deg2rad = [](double deg) {
         return deg * M_PI / 180.0;

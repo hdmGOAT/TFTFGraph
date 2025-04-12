@@ -3,89 +3,359 @@
 #include "./TFTFGraph/TFTFGraph.h"
 #include "./TFTFGraph/Helpers/helpers.h"
 
-
 int main() {
     TFTFGraph jeepneyNetwork;
 
     // Add routes
-    jeepneyNetwork.addRoute(1, "A");
-    jeepneyNetwork.addRoute(2, "B");
-    jeepneyNetwork.addRoute(3, "C");
-    jeepneyNetwork.addRoute(4, "D");
-    jeepneyNetwork.addRoute(5, "E");
-    jeepneyNetwork.addRoute(6, "F");
-    jeepneyNetwork.addRoute(7, "G");
-    jeepneyNetwork.addRoute(8, "H");
+    jeepneyNetwork.addRoute(1, "Clapton");
+    jeepneyNetwork.addRoute(2, "Page");
+    jeepneyNetwork.addRoute(3, "Zappa");
+    jeepneyNetwork.addRoute(4, "Gilmour");
 
-    // Add route coordinates (paths)
-    jeepneyNetwork.setRoutePath(1, {{14.5995, 120.9842}, {14.6000, 120.9850}});
-    jeepneyNetwork.setRoutePath(2, {{14.6001, 120.9851}, {14.6010, 120.9860}});
-    jeepneyNetwork.setRoutePath(3, {{14.6030, 120.9880}, {14.6040, 120.9890}});
-    jeepneyNetwork.setRoutePath(4, {{14.5980, 120.9830}});
-    jeepneyNetwork.setRoutePath(5, {{14.6050, 120.9900}});
-    jeepneyNetwork.setRoutePath(6, {{14.6015, 120.9865}});
-    jeepneyNetwork.setRoutePath(7, {{14.6020, 120.9870}});
-    jeepneyNetwork.setRoutePath(8, {{14.5990, 120.9840}, {14.6005, 120.9852}});
+    // Set route paths
+    jeepneyNetwork.setRoutePath(1, std::vector<Coordinate>{
+        {41.84472604178231, -87.69517843086041},
+        {41.85194866882898, -87.69536242659986},
+        {41.85370604902033, -87.69547250127508},
+        {41.861290912834676, -87.69563270404159},
+        {41.86657467128137, -87.6958636379273},
+        {41.873848209744494, -87.69595194989822},
+        {41.873940832549465, -87.68632160361351},
+        {41.87411287556344, -87.67652424693041},
+        {41.8744043534534, -87.6665884393879},
+        {41.87433590715827, -87.65669290186645},
+        {41.874207429180046, -87.64722787323544},
+        {41.86979623022944, -87.64692365140253},
+        {41.867203338007926, -87.6469465265871},
+        {41.86685905330327, -87.6666205188985},
+        {41.86678225134489, -87.68592567258221},
+        {41.85754439959058, -87.6858109239083},
+        {41.84525811350184, -87.6854769797495},
+         {41.84472604178231, -87.69517843086041}
+    });
 
-    // Add route densities (traffic conditions at different times of day)
+    jeepneyNetwork.setRoutePath(2, std::vector<Coordinate>{
+        {41.862058693535914, -87.69326101634867},
+        {41.860197710312406, -87.69323712757834},
+        {41.844766677445165, -87.69271585104761}
+    });
+
+    jeepneyNetwork.setRoutePath(3, std::vector<Coordinate>{
+        {41.86239543439075, -87.64689266751822},
+        {41.86217145498469, -87.6590213627038},
+        {41.86229107454301, -87.66789587991674},
+        {41.86208261593313, -87.67604904305337},
+        {41.861717797644616, -87.67940548688168},
+        {41.85454866727426, -87.68037933019379},
+        {41.8544580490242, -87.64698961156171},
+         {41.86239543439075, -87.64689266751822}
+    });
+
+    jeepneyNetwork.setRoutePath(4, std::vector<Coordinate>{
+        {41.8532550993408, -87.67995579685523},
+        {41.853153255801686, -87.64799846484553},
+        {41.84156443665319, -87.64709573258187},
+        {41.82954162398778, -87.64718756807768},
+        {41.82299278149338, -87.64598290433163},
+        {41.821806860383816, -87.67131316850916}
+    });
+
+    // Set route densities (traffic conditions)
     jeepneyNetwork.setRouteDensities(1, {
-        {0, 6, 0.6f}, {6, 10, 1.3f}, {10, 16, 1.1f}, {16, 20, 1.7f}, {20, 24, 0.8f}
+        {0, 6, 0.5f}, {6, 10, 1.4f}, {10, 16, 1.2f}, {16, 20, 1.8f}, {20, 24, 0.7f}  // Clapton
     });
 
     jeepneyNetwork.setRouteDensities(2, {
-        {0, 6, 0.5f}, {6, 10, 1.5f}, {10, 16, 1.3f}, {16, 20, 1.9f}, {20, 24, 0.9f}
+        {0, 6, 0.6f}, {6, 10, 1.6f}, {10, 16, 1.3f}, {16, 20, 2.0f}, {20, 24, 0.8f}  // Page
     });
 
     jeepneyNetwork.setRouteDensities(3, {
-        {0, 6, 0.7f}, {6, 10, 1.1f}, {10, 16, 1.0f}, {16, 20, 2.2f}, {20, 24, 1.0f}
+        {0, 6, 0.4f}, {6, 10, 1.1f}, {10, 16, 0.9f}, {16, 20, 1.5f}, {20, 24, 0.6f}  // Zappa
     });
 
     jeepneyNetwork.setRouteDensities(4, {
-        {0, 6, 0.4f}, {6, 10, 1.0f}, {10, 16, 1.0f}, {16, 20, 1.2f}, {20, 24, 0.6f}
+        {0, 6, 0.7f}, {6, 10, 1.2f}, {10, 16, 1.0f}, {16, 20, 1.6f}, {20, 24, 0.9f}  // Gilmour
     });
 
-    jeepneyNetwork.setRouteDensities(5, {
-        {0, 6, 0.3f}, {6, 10, 1.4f}, {10, 16, 1.2f}, {16, 20, 1.6f}, {20, 24, 0.7f}
-    });
+    // Auto-generate transfers (within 200m)
+    jeepneyNetwork.createTransfersFromCoordinates(500.0f);
 
-    jeepneyNetwork.setRouteDensities(6, {
-        {0, 6, 0.5f}, {6, 10, 1.6f}, {10, 16, 1.3f}, {16, 20, 1.8f}, {20, 24, 0.9f}
-    });
+    // Visualize system
+    jeepneyNetwork.visualize();      // general
+    jeepneyNetwork.visualize(8);     // morning
+    jeepneyNetwork.visualize(14);    // afternoon
+    jeepneyNetwork.visualize(23);    // night
 
-    jeepneyNetwork.setRouteDensities(7, {
-        {0, 6, 0.8f}, {6, 10, 1.2f}, {10, 16, 1.0f}, {16, 20, 2.0f}, {20, 24, 1.1f}
-    });
+    // Example routing query
+    Coordinate startCoord = {41.84472604178231, -87.69517843086041};  // Clapton
+    Coordinate endCoord   = {41.821806860383816, -87.67131316850916};  // Gilmour
+    int hour = 9;
 
-    jeepneyNetwork.setRouteDensities(8, {
-        {0, 6, 0.6f}, {6, 10, 1.0f}, {10, 16, 0.9f}, {16, 20, 1.4f}, {20, 24, 0.7f}
-    });
-
-    // Create transfers based on proximity (e.g., 200 meters)
-    jeepneyNetwork.createTransfersFromCoordinates(200.0f);
-
-    jeepneyNetwork.visualize();
-    jeepneyNetwork.visualize(8);
-    jeepneyNetwork.visualize(14);
-    jeepneyNetwork.visualize(23);
-
-    // Test case: Use specific coordinates to find best path
-    Coordinate startCoord1 = {14.5995, 120.9842};  // Start coordinates (route 1)
-    Coordinate endCoord1 = {14.6010, 120.9860};    // End coordinates (route 2)
-    int hour = 8;  // Morning hour
-
-    std::vector<TFTFEdge> bestPath1 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord1, endCoord1, hour);
-
-    Coordinate startCoord2 = {14.6050, 120.9900};  // Start coordinates (route 5)
-    Coordinate endCoord2 = {14.6005, 120.9852};    // End coordinates (route 8)
-    int hour2 = 14;  // Afternoon hour
-
-    std::vector<TFTFEdge> bestPath2 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord2, endCoord2, hour2);
-
-    Coordinate startCoord3 = {14.6030, 120.9880};  // Start coordinates (route 3)
-    Coordinate endCoord3 = {14.6020, 120.9870};    // End coordinates (route 7)
-    int hour3 = 20;  // Evening hour
-
-    std::vector<TFTFEdge> bestPath3 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord3, endCoord3, hour3);
+    std::vector<TFTFEdge> bestPath = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord, hour);
 
     return 0;
 }
+
+/*
+
+https://geojson.io/#map=11.02/41.8769/-87.7334
+
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          [
+            -87.69517843086041,
+            41.84472604178231
+          ],
+          [
+            -87.69536242659986,
+            41.85194866882898
+          ],
+          [
+            -87.69547250127508,
+            41.85370604902033
+          ],
+          [
+            -87.69563270404159,
+            41.861290912834676
+          ],
+          [
+            -87.6958636379273,
+            41.86657467128137
+          ],
+          [
+            -87.69595194989822,
+            41.873848209744494
+          ],
+          [
+            -87.68632160361351,
+            41.873940832549465
+          ],
+          [
+            -87.67652424693041,
+            41.87411287556344
+          ],
+          [
+            -87.6665884393879,
+            41.8744043534534
+          ],
+          [
+            -87.65669290186645,
+            41.87433590715827
+          ],
+          [
+            -87.64722787323544,
+            41.874207429180046
+          ],
+          [
+            -87.64692365140253,
+            41.86979623022944
+          ],
+          [
+            -87.6469465265871,
+            41.867203338007926
+          ],
+          [
+            -87.6666205188985,
+            41.86685905330327
+          ],
+          [
+            -87.68592567258221,
+            41.86678225134489
+          ],
+          [
+            -87.6858109239083,
+            41.85754439959058
+          ],
+          [
+            -87.6854769797495,
+            41.84525811350184
+          ]
+        ],
+        "type": "LineString"
+      },
+      "id": 0
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          [
+            -87.69326101634867,
+            41.862058693535914
+          ],
+          [
+            -87.69323712757834,
+            41.860197710312406
+          ],
+          [
+            -87.69271585104761,
+            41.844766677445165
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          [
+            -87.64689266751822,
+            41.86239543439075
+          ],
+          [
+            -87.6590213627038,
+            41.86217145498469
+          ],
+          [
+            -87.66789587991674,
+            41.86229107454301
+          ],
+          [
+            -87.67604904305337,
+            41.86208261593313
+          ],
+          [
+            -87.67940548688168,
+            41.861717797644616
+          ],
+          [
+            -87.68037933019379,
+            41.85454866727426
+          ],
+          [
+            -87.64698961156171,
+            41.8544580490242
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          [
+            -87.67995579685523,
+            41.8532550993408
+          ],
+          [
+            -87.64799846484553,
+            41.853153255801686
+          ],
+          [
+            -87.64709573258187,
+            41.84156443665319
+          ],
+          [
+            -87.64718756807768,
+            41.82954162398778
+          ],
+          [
+            -87.64598290433163,
+            41.82299278149338
+          ],
+          [
+            -87.67131316850916,
+            41.821806860383816
+          ]
+        ],
+        "type": "LineString"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "start1": ""
+      },
+      "geometry": {
+        "coordinates": [
+          -87.69577915481881,
+          41.84719120946201
+        ],
+        "type": "Point"
+      },
+      "id": 4
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "start2": ""
+      },
+      "geometry": {
+        "coordinates": [
+          -87.66241567600186,
+          41.866552018655455
+        ],
+        "type": "Point"
+      },
+      "id": 5
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          -87.69221587959368,
+          41.86202402141669
+        ],
+        "type": "Point"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          -87.69063041356085,
+          41.844685559217055
+        ],
+        "type": "Point"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          -87.67121994478478,
+          41.823109362203866
+        ],
+        "type": "Point"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          -87.67660428260518,
+          41.85125065687507
+        ],
+        "type": "Point"
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {},
+      "geometry": {
+        "coordinates": [
+          -87.67367894260916,
+          41.87615095966976
+        ],
+        "type": "Point"
+      }
+    }
+  ]
+}
+
+*/
