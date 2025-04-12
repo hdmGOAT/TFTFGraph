@@ -79,20 +79,21 @@ int main() {
 
     // Auto-generate transfers (within 200m)
     jeepneyNetwork.createTransfersFromCoordinates(500.0f);
+    // Multiroute
+    std::cout << "Multiroute: " << std::endl;
 
-    // Visualize system
-    jeepneyNetwork.visualize();      // general
-    jeepneyNetwork.visualize(8);     // morning
-    jeepneyNetwork.visualize(14);    // afternoon
-    jeepneyNetwork.visualize(23);    // night
-
-    // Example routing query
-    Coordinate startCoord = {41.84472604178231, -87.69517843086041};  // Clapton
+    Coordinate startCoord = {	41.8472, 	-87.6958};  // Clapton
     Coordinate endCoord   = {41.821806860383816, -87.67131316850916};  // Gilmour
     int hour = 9;
 
     std::vector<TFTFEdge> bestPath = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord, hour);
 
+    // Same route
+
+    std::cout << "Same route: " << std::endl;
+    Coordinate endCoord2 = { 41.87462192556529, -87.67393534982675}; //Clapton  
+
+    std::vector<TFTFEdge> bestPath2 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord2, hour);
     return 0;
 }
 

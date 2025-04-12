@@ -142,6 +142,9 @@ float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, 
     return total;
 }
 
+double roundUpToNearest2_5(double amount) {
+    return std::ceil(amount / 2.5) * 2.5;
+}
 
 
 Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) {

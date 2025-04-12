@@ -333,8 +333,13 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate& coord, float maxDi
     std::vector<int> nearby;
 
     for (const auto& [routeId, route] : routes) {
-        for (const auto& point : route.path) {
+        auto densePath = densifyPath(route.path, 25.0f);
+      
+        for (const auto& point : densePath) {
+            
+            // Check if the point is within the specified distance from the coordinate
             if (haversine(coord, point) <= maxDistanceMeters) {
+                
                 nearby.push_back(routeId);
                 break; // only need one point close enough
             }
@@ -344,104 +349,6 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate& coord, float maxDi
     return nearby;
 }
 
-
-std::vector<TFTFEdge> TFTFGraph::findMinTransfersPath(
-    int startRouteId, 
-    int endRouteId, 
-    int hour) {
-    
-    // a helper struct to store information about the number of transfers and the total cost.
-    struct TransferInfo {
-        int transfers; // the number of transfers
-        float cost;    // the total cost to reach the route
-        int lastCoordIndex = -1; // the index of the last coordinate in the path
-    };
-
-    // maps for storing the best (minimum) transfers and cost for each route,
-    // as well as previous edge and route information for path reconstruction.
-    std::unordered_map<int, TransferInfo> best;
-    std::unordered_map<int, TFTFEdge> prevEdge;
-    std::unordered_map<int, int> prevRoute;
-
-    // a queue for breadth-first search (BFS) to explore routes.
-    std::queue<int> q;
-    // a set to track routes currently in the queue, preventing reprocessing.
-    std::unordered_set<int> inQueue;
-
-    // initialize all routes with a "worst-case" transfer count and cost.
-    // set each route's best transfer count to max and cost to infinity.
-    for (const auto& [routeId, _] : routes) {
-        best[routeId] = {std::numeric_limits<int>::max(), std::numeric_limits<float>::infinity(), -1};
-    }
-
-    // start route has 0 transfers and 0 cost.
-    best[startRouteId] = {0, 0.0f};
-    q.push(startRouteId);  // start processing from the start route.
-    inQueue.insert(startRouteId);  // mark the start route as visited.
-
-    // perform a breadth-first search (BFS) to find the route with the minimum transfers
-    // and lowest cost to each route.
-    while (!q.empty()) {
-        int curr = q.front(); // get the current route.
-        q.pop();              // remove the route from the queue.
-        inQueue.erase(curr);  // mark it as not in the queue.
-
-        // iterate through each edge from the current route.
-        for (const auto& edge : routes.at(curr).edges) {
-            int next = edge.destinationRoute;
-
-            // Get the index of the current edge's exit coordinate
-            int currIndex = edge.entryIndex;
-
-            bool isVisited = best[curr].lastCoordIndex != -1;
-            bool isBackwards = currIndex <= best[curr].lastCoordIndex;
-
-            if (!routes.at(curr).isLoop && isVisited && isBackwards) continue;
-
-
-
-            float edgeCost = edge.totalCost(hour);
-            int nextTransfers = best[curr].transfers + 1;
-            float nextCost = best[curr].cost + edgeCost;
-
-            if (nextTransfers < best[next].transfers ||
-                (nextTransfers == best[next].transfers && nextCost < best[next].cost)) {
-                best[next] = {nextTransfers, nextCost, edge.exitIndex};
-                prevEdge[next] = edge;
-                prevRoute[next] = curr;
-
-                if (!inQueue.count(next)) {
-                    q.push(next);
-                    inQueue.insert(next);
-                }
-            }
-        }
-
-    }
-
-    // reconstruct the path from the end route to the start route.
-    std::vector<TFTFEdge> path;
-    int curr = endRouteId;  // start from the end route.
-
-    // traverse backwards from the end route, following the `prevRoute` map.
-    while (curr != startRouteId) {
-        if (prevEdge.find(curr) == prevEdge.end()) {
-            // if no valid path is found, return an empty path.
-            std::cout << "No valid path (min transfers + low cost) found.\n";
-            return {};
-        }
-        // add the edge from the previous route to the path.
-        path.push_back(prevEdge[curr]);
-        // move to the previous route.
-        curr = prevRoute[curr];
-    }
-
-    // reverse the path since we built it backwards (from end to start).
-    std::reverse(path.begin(), path.end());
-
-    // return the reconstructed path.
-    return path;
-}
 
 std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     int startRouteId,
@@ -492,17 +399,17 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
 
             // Prevent backward movement on non-loop routes
             if (!isLoop && lastCoord != -1 && entry <= lastCoord) continue;
-
-            float distance = getSubpathDistance(routes.at(routeId).path, entry, exit, isLoop);
-            float fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
-
-            // If it's a transfer (different route), we start a new fare leg
-            if (nextRoute != routeId && lastCoord != -1) {
-                // new leg: fare starts fresh with base fare
+            float distance = 0.0f;
+            float fare;
+            if (lastCoord == -1 || nextRoute != routeId) {
+                // First leg OR transfer — full fare
                 distance = getSubpathDistance(routes.at(nextRoute).path, edge.entryIndex, edge.exitIndex, routes.at(nextRoute).isLoop);
-                fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
+            } else {
+                // Continuing on same route — just pay by distance
+                distance = getSubpathDistance(routes.at(routeId).path, entry, exit, isLoop);
             }
 
+            fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
             float nextFare = fareSoFar + fare;
 
             auto& bestMap = best[nextRoute];
@@ -554,31 +461,64 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
     std::vector<int> endCandidates = getNearbyRoutes(endCoord, 300.0f);
 
+    if (startCandidates.empty() ) {
+        std::cerr << "No nearby routes found for the start coordinates.\n";
+        return {};
+    } else if (endCandidates.empty()) {
+        std::cerr << "No nearby routes found for the end coordinates.\n";
+        return {};
+    } 
+    
+
     std::vector<TFTFEdge> bestPath;
     double bestFare = std::numeric_limits<double>::infinity();
     int bestStartRouteId = -1;
     int bestEndRouteId = -1;
+    bool bestPathSameRoute = false;
+
+    // Declare path outside the loop
+    std::vector<TFTFEdge> path;
 
     for (int startId : startCandidates) {
         for (int endId : endCandidates) {
-            std::vector<TFTFEdge> path = findMinFarePath(startId, endId, hour);
-            if (path.empty()) continue;
+            double fare = 0.0;
 
-            double fare = calculateTotalFare(path, startCoord, endCoord);
+            std::cout << "Start Route: " << startId << ", End Route: " << endId << std::endl;
+
+            if (startId == endId) {
+                // If same route, calculate fare based on edges of that route
+                fare = getActualSegmentDistance(startCoord, endCoord, routes.at(startId).path, routes.at(startId).isLoop);
+                fare = BASE_FARE + (fare / 1000.0) * FARE_PER_KM;
+                
+            } else {
+                // If different routes, use the fare-optimized path finder
+                path = findMinFarePath(startId, endId, hour);
+                if (path.empty()) continue;
+                fare = calculateTotalFare(path, startCoord, endCoord);
+            }
+
+            // Update best path if a cheaper fare is found
             if (fare < bestFare) {
                 bestFare = fare;
                 bestPath = path;
                 bestStartRouteId = startId;
                 bestEndRouteId = endId;
+                bestPathSameRoute = (startId == endId);
             }
         }
     }
 
-    if (bestPath.empty()) {
+    if (bestPath.empty() && !bestPathSameRoute) {
         std::cerr << "No valid route found between coordinates.\n";
         return {};
     }
 
+    if (bestPathSameRoute){
+        std::cout << "Best Path: Start -> "
+                  << routes[bestStartRouteId].routeName << " -> Destination\n";
+        std::cout << "Total fare: " << std::fixed << std::setprecision(2) << roundUpToNearest2_5(bestFare) << " pesos" << std::endl;
+        return {bestPath};
+    }
     // Create and insert a start edge
     TFTFEdge startEdge;
     startEdge.destinationRoute = bestPath.front().destinationRoute;
@@ -609,7 +549,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
 
     // Output total fare
     float totalFare = calculateTotalFare(bestPath, startCoord, endCoord);
-    std::cout << "Total fare: " << std::fixed << std::setprecision(2) << totalFare << " pesos" << std::endl;
+    std::cout << "Total fare: " << std::fixed << std::setprecision(2) << roundUpToNearest2_5(totalFare) << " pesos" << std::endl;
 
     return bestPath;
 }
