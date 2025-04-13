@@ -411,7 +411,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
             }
 
             float distance = 0.0f;
-            float fare;
+            
             if (lastCoord == -1 || nextRoute != routeId) {
                 // First leg OR transfer — full fare
                 distance = getSubpathDistance(routes.at(nextRoute).path, edge.entryIndex, edge.exitIndex, routes.at(nextRoute).isLoop);
@@ -420,7 +420,8 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
                 distance = getSubpathDistance(routes.at(routeId).path, entry, exit, isLoop);
             }
 
-            fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM;
+            float dynamicCost = edge.totalCost(hour);
+            float fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM + dynamicCost;
             float nextFare = fareSoFar + fare;
 
             auto& bestMap = best[nextRoute];
