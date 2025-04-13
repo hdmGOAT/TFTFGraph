@@ -353,7 +353,8 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate& coord, float maxDi
 std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     int startRouteId,
     int endRouteId,
-    int hour) {
+    int hour,
+    int projectedStartIdx) {
 
     constexpr float BASE_FARE = 12.0f;
     constexpr float FARE_PER_KM = 1.5f;
@@ -398,7 +399,17 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
             bool isLoop = routes.at(routeId).isLoop;
 
             // Prevent backward movement on non-loop routes
-            if (!isLoop && lastCoord != -1 && entry <= lastCoord) continue;
+            if (!isLoop) {
+                // prevent backward movement even if it's the first step (no lastCoord)
+                if (entry >= exit) continue;
+
+                // also skip if continuing and moving backwards
+                if (lastCoord != -1 && entry <= lastCoord) continue;
+
+                //If only transfers ocur before onboard on non looping routes
+                if (entry < projectedStartIdx) continue;
+            }
+
             float distance = 0.0f;
             float fare;
             if (lastCoord == -1 || nextRoute != routeId) {
@@ -490,7 +501,8 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
                 
             } else {
                 // If different routes, use the fare-optimized path finder
-                path = findMinFarePath(startId, endId, hour);
+                int projStart = getClosestIndex(routes.at(startId).path, startCoord);
+                path = findMinFarePath(startId, endId, hour, projStart);
                 if (path.empty()) continue;
                 fare = calculateTotalFare(path, startCoord, endCoord);
             }

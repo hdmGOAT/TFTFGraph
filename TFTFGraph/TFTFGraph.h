@@ -68,7 +68,7 @@ class TFTFGraph {
         std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
         double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
         std::vector<const RouteNode*> extractTraversedRouteNodes(const std::vector<TFTFEdge>& path) const;
-            std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId, int hour);
+            std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId, int hour, int projectedStartIdx);
        
     private:
         std::unordered_map<int, RouteNode> routes;
