@@ -527,6 +527,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         return {};
     }
 
+if (!bestPathSameRoute) {
     // Insert start edge
     TFTFEdge startEdge;
     startEdge.destinationRoute = bestPath.front().destinationRoute;
@@ -536,7 +537,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     startEdge.entryCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path);
     startEdge.exitCoord = bestPath.front().entryCoord;
     bestPath.insert(bestPath.begin(), startEdge);
-
+}
     // Insert end edge
     TFTFEdge endEdge;
     endEdge.destinationRoute = -1;
@@ -546,6 +547,8 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     endEdge.entryCoord = bestPath.back().exitCoord;
     endEdge.exitCoord = endCoord;
     bestPath.push_back(endEdge);
+
+
 
     std::cout << "\n==== Route Instructions ====\n";
     for (size_t i = 0; i < bestPath.size(); ++i) {
