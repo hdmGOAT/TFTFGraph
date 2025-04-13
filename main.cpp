@@ -94,6 +94,31 @@ int main() {
     Coordinate endCoord2 = { 41.87462192556529, -87.67393534982675}; //Clapton  
 
     std::vector<TFTFEdge> bestPath2 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord2, hour);
+    
+    // Backwards route, Loops around
+    std::cout << "Backwards route: " << std::endl;
+
+    std::vector<TFTFEdge> bestPath3 = jeepneyNetwork.calculateRouteFromCoordinates(endCoord2, startCoord, hour);
+    
+
+
+    // Backwards on non loop
+
+    std::cout << "Backwards on non loop: " << std::endl;
+    Coordinate startcoordend = {41.8231, -87.6712};
+          
+
+    std::vector<TFTFEdge> bestPath4 = jeepneyNetwork.calculateRouteFromCoordinates(startcoordend, startCoord, hour);
+
+
+    Coordinate startcoordback = {	41.8617, 	-87.6965};
+
+    Coordinate endCoordback = {41.8447, 	-87.6906};  
+
+    std::cout << "Backwards on non loop: " << std::endl;
+    std::vector<TFTFEdge> bestPath5 = jeepneyNetwork.calculateRouteFromCoordinates(startcoordback, endCoordback, hour);
+    
+
     return 0;
 }
 

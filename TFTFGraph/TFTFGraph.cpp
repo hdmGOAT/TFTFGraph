@@ -483,8 +483,6 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         for (int endId : endCandidates) {
             double fare = 0.0;
 
-            std::cout << "Start Route: " << startId << ", End Route: " << endId << std::endl;
-
             if (startId == endId) {
                 // If same route, calculate fare based on edges of that route
                 fare = getActualSegmentDistance(startCoord, endCoord, routes.at(startId).path, routes.at(startId).isLoop);
@@ -539,17 +537,36 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     endEdge.exitCoord = endCoord;
     bestPath.push_back(endEdge);
 
-    // Output best path
-    std::cout << "Best Path: Start -> ";
+    std::cout << "\n==== Route Instructions ====\n";
     for (size_t i = 0; i < bestPath.size(); ++i) {
-        if (i > 0) std::cout << " -> ";
-        std::cout << bestPath[i].destinationRouteName;
+        const TFTFEdge& edge = bestPath[i];
+        
+        if (i == 0) {
+            std::cout << std::fixed << std::setprecision(6);
+            std::cout << "Start at coordinates: (" 
+                    << edge.entryCoord.latitude << ", " 
+                    << edge.entryCoord.longitude << ")\n";
+        }
+
+        if (edge.destinationRoute != -1) {
+            std::cout << "Take route: " << edge.destinationRouteName << "\n";
+            std::cout << "  Mount at: (" 
+                    << edge.entryCoord.latitude << ", " 
+                    << edge.entryCoord.longitude << ")\n";
+            std::cout << "  Dismount at: (" 
+                    << edge.exitCoord.latitude << ", " 
+                    << edge.exitCoord.longitude << ")\n";
+        } else {
+            std::cout << "Walk to final destination at: (" 
+                    << edge.exitCoord.latitude << ", " 
+                    << edge.exitCoord.longitude << ")\n";
+        }
     }
-    std::cout << std::endl;
+    std::cout << "=============================\n";
 
     // Output total fare
     float totalFare = calculateTotalFare(bestPath, startCoord, endCoord);
-    std::cout << "Total fare: " << std::fixed << std::setprecision(2) << roundUpToNearest2_5(totalFare) << " pesos" << std::endl;
-
+    std::cout << "Total fare: " << std::fixed << std::setprecision(2) 
+            << roundUpToNearest2_5(totalFare) << " pesos" << std::endl;
     return bestPath;
 }
