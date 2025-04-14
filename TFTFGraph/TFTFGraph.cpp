@@ -561,7 +561,7 @@ if (!bestPathSameRoute) {
                       << edge.entryCoord.latitude << ", " 
                       << edge.entryCoord.longitude << ")\n";
         }
-
+// cleant hi sh
         if (edge.destinationRoute != -1) {
             std::cout << "Take route: " << edge.destinationRouteName << "\n";
             std::cout << "  Mount at: (" 
