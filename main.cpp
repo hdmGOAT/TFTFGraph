@@ -60,23 +60,6 @@ int main() {
         {41.821806860383816, -87.67131316850916}
     });
 
-    // Set route densities (traffic conditions)
-    jeepneyNetwork.setRouteDensities(1, {
-        {0, 6, 0.5f}, {6, 10, 1.4f}, {10, 16, 1.2f}, {16, 20, 1.8f}, {20, 24, 0.7f}  // Clapton
-    });
-
-    jeepneyNetwork.setRouteDensities(2, {
-        {0, 6, 0.6f}, {6, 10, 1.6f}, {10, 16, 1.3f}, {16, 20, 2.0f}, {20, 24, 0.8f}  // Page
-    });
-
-    jeepneyNetwork.setRouteDensities(3, {
-        {0, 6, 0.4f}, {6, 10, 1.1f}, {10, 16, 0.9f}, {16, 20, 1.5f}, {20, 24, 0.6f}  // Zappa
-    });
-
-    jeepneyNetwork.setRouteDensities(4, {
-        {0, 6, 0.7f}, {6, 10, 1.2f}, {10, 16, 1.0f}, {16, 20, 1.6f}, {20, 24, 0.9f}  // Gilmour
-    });
-
     // Auto-generate transfers (within 200m)
     jeepneyNetwork.createTransfersFromCoordinates(500.0f);
     // Multiroute

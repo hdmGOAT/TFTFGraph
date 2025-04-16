@@ -18,66 +18,11 @@ bool operator == (const Coordinate& lhs, const Coordinate& rhs) {
     return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude;
 }
 
-// function to compute the average jeepney density per hour between two routes
-std::vector<JeepneyDensity> averageRouteDensities(
-    const std::vector<JeepneyDensity>& a, 
-    const std::vector<JeepneyDensity>& b) {
-    
-    std::vector<JeepneyDensity> result;
 
-    // maps to hold hour-to-density values for both route a and b
-    std::unordered_map<int, float> mapA, mapB;
-
-    // fill mapA with jeepney density values for each hour range in route a
-    for (const auto& d : a) {
-        // assign the same density value for every hour between startHour and endHour
-        for (int h = d.startHour; h < d.endHour; ++h) {
-            mapA[h] = d.jeepneyDensity;
-        }
-    }
-
-    // fill mapB with jeepney density values for each hour range in route b
-    for (const auto& d : b) {
-        for (int h = d.startHour; h < d.endHour; ++h) {
-            mapB[h] = d.jeepneyDensity;
-        }
-    }
-
-    // loop through each hour of the day (0 to 23)
-    for (int h = 0; h < 24; ++h) {
-        // use the density from mapA if available, else assume 1.0
-        float dA = mapA.count(h) ? mapA[h] : 1.0f;
-
-        float dB = mapB.count(h) ? mapB[h] : 1.0f;
-
-        float avg = (dA + dB) / 2.0f;
-
-        // store the average as a new JeepneyDensity for the current hour
-        result.push_back({h, h + 1, avg});
-    }
-
-    return result;
-}
-
-
-float TFTFEdge::totalCost(int hour) const
+float TFTFEdge::totalCost() const
 {
-    float densityFactor = 1.0f;
 
-    if (hour >= 0)
-    {
-        for (const auto& interval : densityByInterval)
-        {
-            // if the current interval contains the hour, update the density factor
-            if (interval.contains(hour))
-            {
-                densityFactor = interval.jeepneyDensity;
-                break;
-            }
-        }
-    }
-
-    return (transferCost) * densityFactor;
+    return (transferCost);
 }
 
 void TFTFGraph::addRoute(int routeId, const std::string& routeName) {
@@ -102,19 +47,16 @@ void TFTFGraph::addEdge(
     int toRoute, 
     const std::string& toName,
     float transferCost,
-    const std::vector<JeepneyDensity>& densities, 
     Coordinate entryCoord, 
     Coordinate exitCoord) {
-    
-    // calculate the average density between the two routes for each hour
-    std::vector<JeepneyDensity> avgDensity = averageRouteDensities(routes[fromRoute].densities, routes[toRoute].densities);
+
 
     int entryIndex = getClosestIndex(routes[fromRoute].path, entryCoord);
     int exitIndex = getClosestIndex(routes[toRoute].path, exitCoord);
 
 
     // add a new edge from 'fromRoute' to 'toRoute' with relevant information
-    routes[fromRoute].edges.push_back({toRoute, fromRoute, toName, transferCost, avgDensity});
+    routes[fromRoute].edges.push_back({toRoute, fromRoute, toName, transferCost});
 
     // set the entry and exit coordinates for the newly added edge
     routes[fromRoute].edges.back().entryCoord = entryCoord;
@@ -219,14 +161,6 @@ double TFTFGraph::calculateTotalFare(
     return totalFare;
 }
 
-
-void TFTFGraph::setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities) {
-    if (routes.find(routeId) != routes.end()) {
-        routes[routeId].densities = densities;
-    } else {
-        std::cerr << "Route ID " << routeId << " not found.\n";
-    }
-}
 std::pair<int, int> hashCoordinate(const Coordinate& coord, float cellSizeMeters) {
     float latMeters = 111320.0f; // meters per degree latitude
     float lonMeters = 111320.0f * std::cos(coord.latitude * M_PI / 180.0); // meters per degree longitude
@@ -273,7 +207,7 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
                             }
 
                             if (!exists) {
-                                addEdge(fromID, toID, routes[toID].routeName, dist, {}, fromCoord, toCoord);
+                                addEdge(fromID, toID, routes[toID].routeName, dist, fromCoord, toCoord);
                             }
                         }
                     }
@@ -282,13 +216,9 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters, float 
         }
     }
 }
-void TFTFGraph::visualize(int hour) const
+void TFTFGraph::visualize() const
     {
         std::cout << "\nTFTF Graph Visualization";
-        if (hour >= 0)
-        {
-            std::cout << " (Hour: " << hour << ")";
-        }
         std::cout << "\n===========================\n";
 
         for (const auto &pair : routes)
@@ -308,22 +238,6 @@ void TFTFGraph::visualize(int hour) const
                           << edge.destinationRouteName << "\n";
                 std::cout << "     Transfer Cost: " << edge.transferCost;
 
-                if (hour >= 0)
-                {
-                    float cost = edge.totalCost(hour);
-                    std::cout << ", Total Cost: " << std::fixed << std::setprecision(2) << cost;
-
-                    float densityFactor = 1.0f;
-                    for (const auto &interval : edge.densityByInterval)
-                    {
-                        if (interval.contains(hour))
-                        {
-                            densityFactor = interval.jeepneyDensity;
-                            break;
-                        }
-                    }
-                    std::cout << " (Density Factor : " << densityFactor << ")";
-                }
                 std::cout << "\n";
             }
         }
@@ -420,7 +334,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
                 distance = getSubpathDistance(routes.at(routeId).path, entry, exit, isLoop);
             }
 
-            float dynamicCost = edge.totalCost(hour);
+            float dynamicCost = edge.totalCost();
             float fare = BASE_FARE + (distance / 1000.0f) * FARE_PER_KM + dynamicCost;
             float nextFare = fareSoFar + fare;
 
@@ -502,7 +416,6 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
                 edge.destinationRoute = startId;
                 edge.destinationRouteName = routes.at(startId).routeName;
                 edge.transferCost = 0.0f;
-                edge.densityByInterval = {};
                 edge.entryCoord = projectOntoPath(startCoord, routes[startId].path);
                 edge.exitCoord = projectOntoPath(endCoord, routes[endId].path);
                 path.push_back(edge);
@@ -534,7 +447,6 @@ if (!bestPathSameRoute) {
     startEdge.destinationRoute = bestPath.front().destinationRoute;
     startEdge.destinationRouteName = routes[bestStartRouteId].routeName;
     startEdge.transferCost = 0.0f;
-    startEdge.densityByInterval = {};
     startEdge.entryCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path);
     startEdge.exitCoord = bestPath.front().entryCoord;
     bestPath.insert(bestPath.begin(), startEdge);
@@ -544,7 +456,6 @@ if (!bestPathSameRoute) {
     endEdge.destinationRoute = -1;
     endEdge.destinationRouteName = "Destination";
     endEdge.transferCost = 0.0f;
-    endEdge.densityByInterval = {};
     endEdge.entryCoord = bestPath.back().exitCoord;
     endEdge.exitCoord = endCoord;
     bestPath.push_back(endEdge);

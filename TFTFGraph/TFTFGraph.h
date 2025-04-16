@@ -19,15 +19,6 @@ struct Coordinate {
 
 bool operator==(const Coordinate& lhs, const Coordinate& rhs);
 
-struct JeepneyDensity {
-    int startHour; 
-    int endHour;   
-    float jeepneyDensity; 
-
-    bool contains(int hour) const {
-        return (startHour <= endHour && hour >= startHour && hour < endHour);
-    }
-};
 
 
 struct TFTFEdge {
@@ -35,14 +26,13 @@ struct TFTFEdge {
     int originRoute;
     std::string destinationRouteName;
     float transferCost;
-    std::vector<JeepneyDensity> densityByInterval;
     Coordinate entryCoord;
     Coordinate exitCoord;
     int entryIndex = -1;
     int exitIndex = -1;
 
 
-    float totalCost(int hour = -1) const;
+    float totalCost() const;
 };
 
 struct RouteNode {
@@ -50,7 +40,6 @@ struct RouteNode {
     std::string routeName;
     std::vector<TFTFEdge> edges;
     std::vector<Coordinate> path;
-    std::vector<JeepneyDensity> densities;
     bool isLoop = false; // indicates if the route is a loop
 };
 
@@ -58,12 +47,10 @@ class TFTFGraph {
     public:
         void addRoute(int id, const std::string& name);
         void addEdge(int fromRoute, int toRoute, const std::string &toName,
-            float transferCost, 
-            const std::vector<JeepneyDensity> &densities = {}, Coordinate entryCoord = {}, Coordinate exitCoord = {});
-        void visualize(int hour = -1) const;
+            float transferCost, Coordinate entryCoord = {}, Coordinate exitCoord = {});
+        void visualize() const;
         void setRoutePath(int routeId, const std::vector<Coordinate>& coordinates);
         void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
-        void setRouteDensities(int routeId, const std::vector<JeepneyDensity>& densities);
        std::vector<int> getNearbyRoutes(const Coordinate& coord, float maxDistanceMeters);
         std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate& startCoord, const Coordinate& endCoord, int hour);
         double calculateTotalFare(const std::vector<TFTFEdge>& path, const Coordinate& startCoord, const Coordinate& endCoord);
