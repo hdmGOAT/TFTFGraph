@@ -95,71 +95,71 @@ std::vector<const RouteNode*> TFTFGraph::extractTraversedRouteNodes(
 }
 
 // calculates the total fare for a given path based on distance and route nodes
-double TFTFGraph::calculateTotalFare(
-    const std::vector<TFTFEdge>& path, 
-    const Coordinate& startCoord, 
-    const Coordinate& endCoord) {
+    double TFTFGraph::calculateTotalFare(
+        const std::vector<TFTFEdge>& path, 
+        const Coordinate& startCoord, 
+        const Coordinate& endCoord) {
 
-    double distance = 0.0;  
-    double totalFare = 0.0; 
+        double distance = 0.0;  
+        double totalFare = 0.0; 
 
-    // get the list of route nodes traversed by the path
-    std::vector<const RouteNode*> takenRoutes = extractTraversedRouteNodes(path);
+        // get the list of route nodes traversed by the path
+        std::vector<const RouteNode*> takenRoutes = extractTraversedRouteNodes(path);
 
-    // if no valid routes are found, return 0.0 (no fare)
-    if (takenRoutes.empty()) return 0.0;
+        // if no valid routes are found, return 0.0 (no fare)
+        if (takenRoutes.empty()) return 0.0;
 
-    // project the start and end coordinates onto the respective route paths
-    Coordinate projectedStart = projectOntoPath(startCoord, takenRoutes.front()->path);
-    Coordinate projectedEnd = projectOntoPath(endCoord, takenRoutes.back()->path);
+        // project the start and end coordinates onto the respective route paths
+        Coordinate projectedStart = projectOntoPath(startCoord, takenRoutes.front()->path);
+        Coordinate projectedEnd = projectOntoPath(endCoord, takenRoutes.back()->path);
 
-    // loop through the edges in the path to calculate total distance
-    for (size_t i = 0; i < path.size(); ++i) {
-        const TFTFEdge& edge = path[i];
+        // loop through the edges in the path to calculate total distance
+        for (size_t i = 0; i < path.size(); ++i) {
+            const TFTFEdge& edge = path[i];
 
-        // if it's the first edge, calculate distance from start to the first edge's exit
-        if (i == 0) {
-            int startIdx = getClosestIndex(takenRoutes[0]->path, projectedStart);
-            int endIdx = getClosestIndex(takenRoutes[0]->path, edge.exitCoord);
+            // if it's the first edge, calculate distance from start to the first edge's exit
+            if (i == 0) {
+                int startIdx = getClosestIndex(takenRoutes[0]->path, projectedStart);
+                int endIdx = getClosestIndex(takenRoutes[0]->path, edge.exitCoord);
 
-            // skip if segment would wrap around a non-loop route
-            if (!takenRoutes[0]->isLoop && startIdx > endIdx) {
-                continue;
+                // skip if segment would wrap around a non-loop route
+                if (!takenRoutes[0]->isLoop && startIdx > endIdx) {
+                    continue;
+                }
+                
+                distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
             }
-            
-            distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
-        }
-        // if it's the last edge, calculate distance from the last edge's entry to the end
-        else if (i == path.size() - 1) {
-            int startIdx = getClosestIndex(takenRoutes.back()->path, edge.entryCoord);
-            int endIdx = getClosestIndex(takenRoutes.back()->path, projectedEnd);
+            // if it's the last edge, calculate distance from the last edge's entry to the end
+            else if (i == path.size() - 1) {
+                int startIdx = getClosestIndex(takenRoutes.back()->path, edge.entryCoord);
+                int endIdx = getClosestIndex(takenRoutes.back()->path, projectedEnd);
 
-            // skip if segment would wrap around a non-loop route
-            if (!takenRoutes.back()->isLoop && startIdx > endIdx) {
-                continue;
+                // skip if segment would wrap around a non-loop route
+                if (!takenRoutes.back()->isLoop && startIdx > endIdx) {
+                    continue;
+                }
+                distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
             }
-            distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
-        }
-        // for all other edges, calculate distance between entry and exit coordinates
-        else {
-            int startIdx = getClosestIndex(takenRoutes[i]->path, edge.entryCoord);
-            int endIdx = getClosestIndex(takenRoutes[i]->path, edge.exitCoord);
+            // for all other edges, calculate distance between entry and exit coordinates
+            else {
+                int startIdx = getClosestIndex(takenRoutes[i]->path, edge.entryCoord);
+                int endIdx = getClosestIndex(takenRoutes[i]->path, edge.exitCoord);
 
-            // skip if segment would wrap around a non-loop route
-            if (!takenRoutes[i]->isLoop && startIdx > endIdx) {
-                continue;
+                // skip if segment would wrap around a non-loop route
+                if (!takenRoutes[i]->isLoop && startIdx > endIdx) {
+                    continue;
+                }
+
+                distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
             }
-
-            distance += getActualSegmentDistance(edge.entryCoord, edge.exitCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
         }
+
+        // calculate total fare based on the number of routes taken and the total distance
+        totalFare = BASE_FARE * takenRoutes.size();  // add fare for number of routes taken
+        totalFare += ((distance / 1000.0) * FARE_PER_KM);  // add fare based on distance (converted to kilometers)
+
+        return totalFare;
     }
-
-    // calculate total fare based on the number of routes taken and the total distance
-    totalFare = BASE_FARE * takenRoutes.size();  // add fare for number of routes taken
-    totalFare += ((distance / 1000.0) * FARE_PER_KM);  // add fare based on distance (converted to kilometers)
-
-    return totalFare;
-}
 
 std::pair<int, int> hashCoordinate(const Coordinate& coord, float cellSizeMeters) {
     float latMeters = 111320.0f; // meters per degree latitude
