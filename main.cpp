@@ -2,369 +2,55 @@
 #include <vector>
 #include "./TFTFGraph/TFTFGraph.h"
 #include "./TFTFGraph/Helpers/helpers.h"
+#include <fstream>
+
+#include "json.hpp"
+
+using json = nlohmann::json;
+void loadRoutesFromGeoJSON(const std::string& filepath, TFTFGraph& graph) {
+    std::ifstream file(filepath);
+    if (!file.is_open()) {
+        std::cerr << "Failed to open GeoJSON file!" << std::endl;
+        return;
+    }
+
+    json geojson;
+    file >> geojson;
+
+    const auto& features = geojson["features"];
+    int routeId = 0;
+
+    for (const auto& feature : features) {
+        if (feature["geometry"]["type"] != "LineString") continue;
+
+        std::vector<Coordinate> routePath;
+        const auto& coords = feature["geometry"]["coordinates"];
+
+        for (const auto& coord : coords) {
+            double lon = coord[0];
+            double lat = coord[1];
+            routePath.emplace_back(Coordinate{lat, lon});
+        }
+
+        std::string routeName = "Route_" + std::to_string(routeId);
+        if (feature.contains("properties") && feature["properties"].contains("name")) {
+            routeName = feature["properties"]["name"];
+        }
+
+        graph.addRoute(routeId, routeName);
+        graph.setRoutePath(routeId, routePath);
+        routeId++;
+    }
+}
+
 
 int main() {
     TFTFGraph jeepneyNetwork;
-
-    // Add routes
-    jeepneyNetwork.addRoute(1, "Clapton");
-    jeepneyNetwork.addRoute(2, "Page");
-    jeepneyNetwork.addRoute(3, "Zappa");
-    jeepneyNetwork.addRoute(4, "Gilmour");
-
-    // Set route paths
-    jeepneyNetwork.setRoutePath(1, std::vector<Coordinate>{
-        {41.84472604178231, -87.69517843086041},
-        {41.85194866882898, -87.69536242659986},
-        {41.85370604902033, -87.69547250127508},
-        {41.861290912834676, -87.69563270404159},
-        {41.86657467128137, -87.6958636379273},
-        {41.873848209744494, -87.69595194989822},
-        {41.873940832549465, -87.68632160361351},
-        {41.87411287556344, -87.67652424693041},
-        {41.8744043534534, -87.6665884393879},
-        {41.87433590715827, -87.65669290186645},
-        {41.874207429180046, -87.64722787323544},
-        {41.86979623022944, -87.64692365140253},
-        {41.867203338007926, -87.6469465265871},
-        {41.86685905330327, -87.6666205188985},
-        {41.86678225134489, -87.68592567258221},
-        {41.85754439959058, -87.6858109239083},
-        {41.84525811350184, -87.6854769797495},
-         {41.84472604178231, -87.69517843086041}
-    });
-
-    jeepneyNetwork.setRoutePath(2, std::vector<Coordinate>{
-        {41.862058693535914, -87.69326101634867},
-        {41.860197710312406, -87.69323712757834},
-        {41.844766677445165, -87.69271585104761}
-    });
-
-    jeepneyNetwork.setRoutePath(3, std::vector<Coordinate>{
-        {41.86239543439075, -87.64689266751822},
-        {41.86217145498469, -87.6590213627038},
-        {41.86229107454301, -87.66789587991674},
-        {41.86208261593313, -87.67604904305337},
-        {41.861717797644616, -87.67940548688168},
-        {41.85454866727426, -87.68037933019379},
-        {41.8544580490242, -87.64698961156171},
-         {41.86239543439075, -87.64689266751822}
-    });
-
-    jeepneyNetwork.setRoutePath(4, std::vector<Coordinate>{
-        {41.8532550993408, -87.67995579685523},
-        {41.853153255801686, -87.64799846484553},
-        {41.84156443665319, -87.64709573258187},
-        {41.82954162398778, -87.64718756807768},
-        {41.82299278149338, -87.64598290433163},
-        {41.821806860383816, -87.67131316850916}
-    });
-
-    // Auto-generate transfers (within 200m)
-    jeepneyNetwork.createTransfersFromCoordinates(500.0f);
-    // Multiroute
-    std::cout << "Multiroute: " << std::endl;
-
-    Coordinate startCoord = {	41.8472, 	-87.6958};  // Clapton
-    Coordinate endCoord   = {41.821806860383816, -87.67131316850916};  // Gilmour
-    int hour = 9;
-
-    std::vector<TFTFEdge> bestPath = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord, hour);
-
-    // Same route
-
-    std::cout << "Same route: " << std::endl;
-    Coordinate endCoord2 = { 41.87462192556529, -87.67393534982675}; //Clapton  
-
-    std::vector<TFTFEdge> bestPath2 = jeepneyNetwork.calculateRouteFromCoordinates(startCoord, endCoord2, hour);
-    
-    // Backwards route, Loops around
-    std::cout << "Backwards route: " << std::endl;
-
-    std::vector<TFTFEdge> bestPath3 = jeepneyNetwork.calculateRouteFromCoordinates(endCoord2, startCoord, hour);
-    
-
-
-    // Backwards on non loop
-
-    std::cout << "Backwards on non loop: " << std::endl;
-    Coordinate startcoordend = {41.8231, -87.6712};
-          
-
-    std::vector<TFTFEdge> bestPath4 = jeepneyNetwork.calculateRouteFromCoordinates(startcoordend, startCoord, hour);
-
-
-    Coordinate startcoordback = {	41.8617, 	-87.6965};
-
-    Coordinate endCoordback = {41.8447, 	-87.6906};  
-
-    std::cout << "Backwards on non loop: " << std::endl;
-    std::vector<TFTFEdge> bestPath5 = jeepneyNetwork.calculateRouteFromCoordinates(startcoordback, endCoordback, hour);
-    
-
+    loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
+    jeepneyNetwork.createTransfersFromCoordinates(100.0f, 10.0f); 
     return 0;
 }
 
-/*
+//RUN THIS CODE
 
-https://geojson.io/#map=11.02/41.8769/-87.7334
-
-{
-  "type": "FeatureCollection",
-  "features": [
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          [
-            -87.69517843086041,
-            41.84472604178231
-          ],
-          [
-            -87.69536242659986,
-            41.85194866882898
-          ],
-          [
-            -87.69547250127508,
-            41.85370604902033
-          ],
-          [
-            -87.69563270404159,
-            41.861290912834676
-          ],
-          [
-            -87.6958636379273,
-            41.86657467128137
-          ],
-          [
-            -87.69595194989822,
-            41.873848209744494
-          ],
-          [
-            -87.68632160361351,
-            41.873940832549465
-          ],
-          [
-            -87.67652424693041,
-            41.87411287556344
-          ],
-          [
-            -87.6665884393879,
-            41.8744043534534
-          ],
-          [
-            -87.65669290186645,
-            41.87433590715827
-          ],
-          [
-            -87.64722787323544,
-            41.874207429180046
-          ],
-          [
-            -87.64692365140253,
-            41.86979623022944
-          ],
-          [
-            -87.6469465265871,
-            41.867203338007926
-          ],
-          [
-            -87.6666205188985,
-            41.86685905330327
-          ],
-          [
-            -87.68592567258221,
-            41.86678225134489
-          ],
-          [
-            -87.6858109239083,
-            41.85754439959058
-          ],
-          [
-            -87.6854769797495,
-            41.84525811350184
-          ]
-        ],
-        "type": "LineString"
-      },
-      "id": 0
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          [
-            -87.69326101634867,
-            41.862058693535914
-          ],
-          [
-            -87.69323712757834,
-            41.860197710312406
-          ],
-          [
-            -87.69271585104761,
-            41.844766677445165
-          ]
-        ],
-        "type": "LineString"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          [
-            -87.64689266751822,
-            41.86239543439075
-          ],
-          [
-            -87.6590213627038,
-            41.86217145498469
-          ],
-          [
-            -87.66789587991674,
-            41.86229107454301
-          ],
-          [
-            -87.67604904305337,
-            41.86208261593313
-          ],
-          [
-            -87.67940548688168,
-            41.861717797644616
-          ],
-          [
-            -87.68037933019379,
-            41.85454866727426
-          ],
-          [
-            -87.64698961156171,
-            41.8544580490242
-          ]
-        ],
-        "type": "LineString"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          [
-            -87.67995579685523,
-            41.8532550993408
-          ],
-          [
-            -87.64799846484553,
-            41.853153255801686
-          ],
-          [
-            -87.64709573258187,
-            41.84156443665319
-          ],
-          [
-            -87.64718756807768,
-            41.82954162398778
-          ],
-          [
-            -87.64598290433163,
-            41.82299278149338
-          ],
-          [
-            -87.67131316850916,
-            41.821806860383816
-          ]
-        ],
-        "type": "LineString"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "start1": ""
-      },
-      "geometry": {
-        "coordinates": [
-          -87.69577915481881,
-          41.84719120946201
-        ],
-        "type": "Point"
-      },
-      "id": 4
-    },
-    {
-      "type": "Feature",
-      "properties": {
-        "start2": ""
-      },
-      "geometry": {
-        "coordinates": [
-          -87.66241567600186,
-          41.866552018655455
-        ],
-        "type": "Point"
-      },
-      "id": 5
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          -87.69221587959368,
-          41.86202402141669
-        ],
-        "type": "Point"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          -87.69063041356085,
-          41.844685559217055
-        ],
-        "type": "Point"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          -87.67121994478478,
-          41.823109362203866
-        ],
-        "type": "Point"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          -87.67660428260518,
-          41.85125065687507
-        ],
-        "type": "Point"
-      }
-    },
-    {
-      "type": "Feature",
-      "properties": {},
-      "geometry": {
-        "coordinates": [
-          -87.67367894260916,
-          41.87615095966976
-        ],
-        "type": "Point"
-      }
-    }
-  ]
-}
-
-*/
+//g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp -o main
