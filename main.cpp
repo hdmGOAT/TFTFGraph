@@ -37,6 +37,10 @@ void loadRoutesFromGeoJSON(const std::string& filepath, TFTFGraph& graph) {
             routeName = feature["properties"]["name"];
         }
 
+        bool isLoop = routePath.front() == routePath.back();
+
+        
+
         graph.addRoute(routeId, routeName);
         graph.setRoutePath(routeId, routePath);
         routeId++;
