@@ -22,6 +22,12 @@ struct Coordinate
 
 bool operator==(const Coordinate &lhs, const Coordinate &rhs);
 
+enum class EdgeType
+{
+    Ride,
+    Transfer
+};
+
 struct TFTFEdge
 {
     int destinationRoute;
@@ -32,6 +38,7 @@ struct TFTFEdge
     Coordinate exitCoord;
     int entryIndex = -1;
     int exitIndex = -1;
+    EdgeType type = EdgeType::Ride;
 
     float totalCost() const;
 };
