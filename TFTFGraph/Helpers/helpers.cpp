@@ -19,16 +19,25 @@ std::vector<Coordinate> densifyPath(const std::vector<Coordinate> &path, float s
         const auto &start = path[i - 1];
         const auto &end = path[i];
         float dist = haversine(start, end);
-        int numPoints = std::max(1, static_cast<int>(dist / spacingMeters));
-        for (int j = 0; j < numPoints; ++j)
+        int numPoints = static_cast<int>(dist / spacingMeters);
+
+        if (numPoints == 0)
         {
-            float t = static_cast<float>(j) / numPoints;
-            result.push_back(interpolate(start, end, t));
+            result.push_back(start); // optional: skip if you don't want to repeat start
+        }
+        else
+        {
+            for (int j = 0; j < numPoints; ++j)
+            {
+                float t = static_cast<float>(j) / numPoints;
+                result.push_back(interpolate(start, end, t));
+            }
         }
     }
     result.push_back(path.back());
     return result;
 }
+
 
 float haversine(const Coordinate &a, const Coordinate &b)
 {

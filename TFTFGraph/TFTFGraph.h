@@ -53,7 +53,7 @@ public:
                  float transferCost, Coordinate entryCoord = {}, Coordinate exitCoord = {});
     void visualize() const;
     void setRoutePath(int routeId, const std::vector<Coordinate> &coordinates);
-    void createTransfersFromCoordinates(float transferRangeMeters, float farePerTransfer = 10.0f);
+    void createTransfersFromCoordinates(float transferRangeMeters);
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord, int hour);
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);

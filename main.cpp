@@ -45,8 +45,6 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
 
         bool isLoop = routePath.front() == routePath.back();
 
-        
-
         graph.addRoute(routeId, routeName);
         graph.setRoutePath(routeId, routePath);
         routeId++;
@@ -57,6 +55,8 @@ int main()
 {
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
+
+    jeepneyNetwork.createTransfersFromCoordinates(300.0f);
     // Bonbon - Westbound Bulua Terminal
     std::cout << "Bonbon - Westbound Bulua Terminal" << std::endl;
     jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.51133, 124.62429}, 10);
