@@ -68,29 +68,13 @@ int main()
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
 
-    float transferRange = 50.0f;
+    float transferRange = 100.5f;
 
-    testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.51133, 124.62429}, "Westbound Bulua Terminal", transferRange, 10);
-    testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange, 10);
-    testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange, 10);
-    testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange, 10);
+    testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange, 10);
+    // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange, 10);
+    // testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange, 10);
+    // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange, 10);
 
-    // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
-    // // Bonbon - Westbound Bulua Terminal
-    // std::cout << "Bonbon - Westbound Bulua Terminal" << std::endl;
-    // jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.51133, 124.62429}, 10);
-
-    // std::cout << std::endl;
-
-    // // Bonbon - Velez Mogchs
-    // std::cout << "Westbound Bulua Terminal - Velez Mogchs" << std::endl;
-    // jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.482906, 124.646094}, 10);
-
-    // std::cout << std::endl;
-
-    // // Kauswagan City Engineer - USTP
-    // std::cout << "Kauswagan City Engineer - USTP" << std::endl;
-    // jeepneyNetwork.calculateRouteFromCoordinates({8.504775, 124.642954}, {8.484763, 124.655977}, 10);
     return 0;
 }
 

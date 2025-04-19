@@ -84,6 +84,7 @@
     "fstream": "cpp",
     "text_encoding": "cpp",
     "valarray": "cpp",
-    "variant": "cpp"
+    "variant": "cpp",
+    "set": "cpp"
   }
 }

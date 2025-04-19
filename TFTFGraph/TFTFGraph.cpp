@@ -13,6 +13,7 @@
 #include <limits>
 #include <algorithm>
 #include "Helpers/helpers.h"
+#include "../json.hpp"
 
 bool operator==(const Coordinate &lhs, const Coordinate &rhs)
 {
