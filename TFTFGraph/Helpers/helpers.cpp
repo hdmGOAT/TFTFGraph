@@ -4,21 +4,24 @@
 #include "helpers.h"
 #include "../TFTFGraph.h"
 
-Coordinate interpolate(const Coordinate& start, const Coordinate& end, float t) {
+Coordinate interpolate(const Coordinate &start, const Coordinate &end, float t)
+{
     float lat = start.latitude + t * (end.latitude - start.latitude);
     float lon = start.longitude + t * (end.longitude - start.longitude);
     return {lat, lon};
 }
 
-
-std::vector<Coordinate> densifyPath(const std::vector<Coordinate>& path, float spacingMeters) {
+std::vector<Coordinate> densifyPath(const std::vector<Coordinate> &path, float spacingMeters)
+{
     std::vector<Coordinate> result;
-    for (size_t i = 1; i < path.size(); ++i) {
-        const auto& start = path[i - 1];
-        const auto& end = path[i];
+    for (size_t i = 1; i < path.size(); ++i)
+    {
+        const auto &start = path[i - 1];
+        const auto &end = path[i];
         float dist = haversine(start, end);
         int numPoints = std::max(1, static_cast<int>(dist / spacingMeters));
-        for (int j = 0; j < numPoints; ++j) {
+        for (int j = 0; j < numPoints; ++j)
+        {
             float t = static_cast<float>(j) / numPoints;
             result.push_back(interpolate(start, end, t));
         }
@@ -27,9 +30,10 @@ std::vector<Coordinate> densifyPath(const std::vector<Coordinate>& path, float s
     return result;
 }
 
-
-float haversine(const Coordinate& a, const Coordinate& b)  {
-    auto deg2rad = [](double deg) {
+float haversine(const Coordinate &a, const Coordinate &b)
+{
+    auto deg2rad = [](double deg)
+    {
         return deg * M_PI / 180.0;
     };
 
@@ -43,18 +47,21 @@ float haversine(const Coordinate& a, const Coordinate& b)  {
 
     double h = std::sin(dlat / 2) * std::sin(dlat / 2) +
                std::cos(lat1) * std::cos(lat2) *
-               std::sin(dlon / 2) * std::sin(dlon / 2);
+                   std::sin(dlon / 2) * std::sin(dlon / 2);
 
     double c = 2 * std::atan2(std::sqrt(h), std::sqrt(1 - h));
     return EARTH_RADIUS_METERS * c;
 }
 
-int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate& target) {
+int closestCoordinateIndex(const std::vector<Coordinate> &path, const Coordinate &target)
+{
     int bestIdx = 0;
     float bestDist = std::numeric_limits<float>::infinity();
-    for (size_t i = 0; i < path.size(); ++i) {
+    for (size_t i = 0; i < path.size(); ++i)
+    {
         float dist = haversine(path[i], target);
-        if (dist < bestDist) {
+        if (dist < bestDist)
+        {
             bestDist = dist;
             bestIdx = i;
         }
@@ -62,59 +69,74 @@ int closestCoordinateIndex(const std::vector<Coordinate>& path, const Coordinate
     return bestIdx;
 }
 
-float computeRouteDistance(const std::vector<Coordinate>& path, const Coordinate& start, const Coordinate& end) {
-    if (path.empty()) return 0.0f;
+float computeRouteDistance(const std::vector<Coordinate> &path, const Coordinate &start, const Coordinate &end)
+{
+    if (path.empty())
+        return 0.0f;
 
     int closestStart = -1;
     int closestEnd = -1;
     float minStartDist = std::numeric_limits<float>::infinity();
     float minEndDist = std::numeric_limits<float>::infinity();
 
-    for (int i = 0; i < path.size(); ++i) {
+    for (int i = 0; i < path.size(); ++i)
+    {
         float dStart = haversine(path[i], start);
         float dEnd = haversine(path[i], end);
-        if (dStart < minStartDist) {
+        if (dStart < minStartDist)
+        {
             minStartDist = dStart;
             closestStart = i;
         }
-        if (dEnd < minEndDist) {
+        if (dEnd < minEndDist)
+        {
             minEndDist = dEnd;
             closestEnd = i;
         }
     }
 
-    if (closestStart > closestEnd) std::swap(closestStart, closestEnd);
+    if (closestStart > closestEnd)
+        std::swap(closestStart, closestEnd);
 
     float distance = 0.0f;
-    for (int i = closestStart; i < closestEnd; ++i) {
-        distance += haversine(path[i], path[i+1]);
+    for (int i = closestStart; i < closestEnd; ++i)
+    {
+        distance += haversine(path[i], path[i + 1]);
     }
 
     return distance;
 }
 
-double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, const std::vector<Coordinate>& path, bool isLoop) {
+double getActualSegmentDistance(const Coordinate &start, const Coordinate &end, const std::vector<Coordinate> &path, bool isLoop)
+{
     int startIndex = getClosestIndex(path, start);
     int endIndex = getClosestIndex(path, end);
 
     double distance = 0.0;
 
     // Prevent illegal wraparound
-    if (!isLoop && startIndex > endIndex) {
+    if (!isLoop && startIndex > endIndex)
+    {
         std::cerr << "Warning: Non-loop route but segment wraps around. Returning large distance.\n";
         return 1e9;
     }
 
-    if (startIndex <= endIndex) {
-        for (int i = startIndex; i < endIndex; ++i) {
+    if (startIndex <= endIndex)
+    {
+        for (int i = startIndex; i < endIndex; ++i)
+        {
             distance += haversine(path[i], path[i + 1]);
         }
-    } else { // loop case
-        for (int i = startIndex; i < path.size() - 1; ++i) {
+    }
+    else
+    { // loop case
+        for (int i = startIndex; i < path.size() - 1; ++i)
+        {
             distance += haversine(path[i], path[i + 1]);
         }
         distance += haversine(path.back(), path[0]);
-        for (int i = 0; i < endIndex; ++i) {
+        for (int i = 0; i < endIndex; ++i)
+        {
             distance += haversine(path[i], path[i + 1]);
         }
     }
@@ -122,55 +144,65 @@ double getActualSegmentDistance(const Coordinate& start, const Coordinate& end, 
     return distance;
 }
 
-
-float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, bool isLoop) {
+float getSubpathDistance(const std::vector<Coordinate> &coords, int i1, int i2, bool isLoop)
+{
     float total = 0.0f;
-    if (i1 == i2) return 0.0f;
+    if (i1 == i2)
+        return 0.0f;
 
-    if (!isLoop || i1 < i2) {
-        for (int i = i1; i < i2; ++i) {
+    if (!isLoop || i1 < i2)
+    {
+        for (int i = i1; i < i2; ++i)
+        {
             total += haversine(coords[i], coords[i + 1]);
         }
-    } else {
-        for (int i = i1; i + 1 < coords.size(); ++i) {
+    }
+    else
+    {
+        for (int i = i1; i + 1 < coords.size(); ++i)
+        {
             total += haversine(coords[i], coords[i + 1]);
         }
-        for (int i = 0; i < i2; ++i) {
+        for (int i = 0; i < i2; ++i)
+        {
             total += haversine(coords[i], coords[i + 1]);
         }
     }
     return total;
 }
 
-double roundUpToNearest2_5(double amount) {
+double roundUpToNearest2_5(double amount)
+{
     return std::ceil(amount / 2.5) * 2.5;
 }
 
-
-Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate>& path) {
+Coordinate projectOntoPath(const Coordinate &point, const std::vector<Coordinate> &path)
+{
     double minDistance = std::numeric_limits<double>::max();
     Coordinate closestPoint;
 
-    for (size_t i = 0; i + 1 < path.size(); ++i) {
-        const Coordinate& A = path[i];
-        const Coordinate& B = path[i + 1];
+    for (size_t i = 0; i + 1 < path.size(); ++i)
+    {
+        const Coordinate &A = path[i];
+        const Coordinate &B = path[i + 1];
 
-        double dx = B.longitude - A.latitude;
+        double dx = B.longitude - A.longitude;
         double dy = B.latitude - A.latitude;
 
         double lengthSquared = dx * dx + dy * dy;
-        if (lengthSquared == 0.0) continue;  
+        if (lengthSquared == 0.0)
+            continue;
 
         double t = ((point.longitude - A.longitude) * dx + (point.latitude - A.latitude) * dy) / lengthSquared;
-        t = std::max(0.0, std::min(1.0, t)); 
+        t = std::max(0.0, std::min(1.0, t));
 
         Coordinate projection = {
             A.latitude + t * dy,
-            A.latitude + t * dx
-        };
+            A.longitude + t * dx};
 
         double d = haversine(point, projection);
-        if (d < minDistance) {
+        if (d < minDistance)
+        {
             minDistance = d;
             closestPoint = projection;
         }
@@ -179,13 +211,16 @@ Coordinate projectOntoPath(const Coordinate& point, const std::vector<Coordinate
     return closestPoint;
 }
 
-int getClosestIndex(const std::vector<Coordinate>& path, const Coordinate& coord) {
+int getClosestIndex(const std::vector<Coordinate> &path, const Coordinate &coord)
+{
     float minDist = std::numeric_limits<float>::infinity();
     int index = -1;
 
-    for (size_t i = 0; i < path.size(); ++i) {
+    for (size_t i = 0; i < path.size(); ++i)
+    {
         float dist = haversine(coord, path[i]);
-        if (dist < minDist) {
+        if (dist < minDist)
+        {
             minDist = dist;
             index = static_cast<int>(i);
         }
