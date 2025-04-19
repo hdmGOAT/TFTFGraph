@@ -528,6 +528,8 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
 
     // Output the route instructions
     std::cout << "\n==== Route Instructions ====\n";
+    std::cout << "Best Path: " << bestPath.size() << " edges\n";
+
     for (size_t i = 0; i < bestPath.size(); ++i)
     {
         const TFTFEdge &edge = bestPath[i];
