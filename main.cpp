@@ -7,9 +7,11 @@
 #include "json.hpp"
 
 using json = nlohmann::json;
-void loadRoutesFromGeoJSON(const std::string& filepath, TFTFGraph& graph) {
+void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
+{
     std::ifstream file(filepath);
-    if (!file.is_open()) {
+    if (!file.is_open())
+    {
         std::cerr << "Failed to open GeoJSON file!" << std::endl;
         return;
     }
@@ -17,23 +19,27 @@ void loadRoutesFromGeoJSON(const std::string& filepath, TFTFGraph& graph) {
     json geojson;
     file >> geojson;
 
-    const auto& features = geojson["features"];
+    const auto &features = geojson["features"];
     int routeId = 0;
 
-    for (const auto& feature : features) {
-        if (feature["geometry"]["type"] != "LineString") continue;
+    for (const auto &feature : features)
+    {
+        if (feature["geometry"]["type"] != "LineString")
+            continue;
 
         std::vector<Coordinate> routePath;
-        const auto& coords = feature["geometry"]["coordinates"];
+        const auto &coords = feature["geometry"]["coordinates"];
 
-        for (const auto& coord : coords) {
+        for (const auto &coord : coords)
+        {
             double lon = coord[0];
             double lat = coord[1];
             routePath.emplace_back(Coordinate{lat, lon});
         }
 
         std::string routeName = "Route_" + std::to_string(routeId);
-        if (feature.contains("properties") && feature["properties"].contains("name")) {
+        if (feature.contains("properties") && feature["properties"].contains("name"))
+        {
             routeName = feature["properties"]["name"];
         }
 
@@ -43,14 +49,28 @@ void loadRoutesFromGeoJSON(const std::string& filepath, TFTFGraph& graph) {
     }
 }
 
-
-int main() {
+int main()
+{
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
-    jeepneyNetwork.createTransfersFromCoordinates(100.0f, 10.0f); 
+    // Bonbon - Westbound Bulua Terminal
+    std::cout << "Bonbon - Westbound Bulua Terminal" << std::endl;
+    jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.51133, 124.62429}, 10);
+
+    std::cout << std::endl;
+
+    // Bonbon - Velez Mogchs
+    std::cout << "Westbound Bulua Terminal - Velez Mogchs" << std::endl;
+    jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.482906, 124.646094}, 10);
+
+    std::cout << std::endl;
+
+    // Kauswagan City Engineer - USTP
+    std::cout << "Kauswagan City Engineer - USTP" << std::endl;
+    jeepneyNetwork.calculateRouteFromCoordinates({8.504775, 124.642954}, {8.484763, 124.655977}, 10);
     return 0;
 }
 
-//RUN THIS CODE
+// RUN THIS CODE
 
-//g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp -o main
+// g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp -o main
