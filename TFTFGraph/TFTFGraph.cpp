@@ -487,36 +487,47 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     bestPath.push_back(endEdge);
 
     std::cout << "\n==== Route Instructions ====\n";
-    for (size_t i = 0; i < bestPath.size(); ++i)
-    {
-        const TFTFEdge &edge = bestPath[i];
+for (size_t i = 0; i < bestPath.size(); ++i)
+{
+    const TFTFEdge &edge = bestPath[i];
 
-        if (i == 0)
+    if (i == 0)
+    {
+        std::cout << std::fixed << std::setprecision(6);
+        std::cout << "Start at coordinates: ("
+                  << edge.entryCoord.latitude << ", "
+                  << edge.entryCoord.longitude << ")\n";
+    }
+
+    if (edge.destinationRoute != -1)
+    {
+        std::cout << "Take route: " << edge.destinationRouteName << "\n";
+        std::cout << "  Mount at: ("
+                  << edge.entryCoord.latitude << ", "
+                  << edge.entryCoord.longitude << ")\n";
+
+        // Safe check before accessing nextEdge
+        if (i + 1 < bestPath.size())
         {
-            std::cout << std::fixed << std::setprecision(6);
-            std::cout << "Start at coordinates: ("
-                      << edge.entryCoord.latitude << ", "
-                      << edge.entryCoord.longitude << ")\n";
-        }
-        // cleant hi sh
-        if (edge.destinationRoute != -1)
-        {
-            std::cout << "Take route: " << edge.destinationRouteName << "\n";
-            std::cout << "  Mount at: ("
-                      << edge.entryCoord.latitude << ", "
-                      << edge.entryCoord.longitude << ")\n";
+            const TFTFEdge &nextEdge = bestPath[i + 1];
             std::cout << "  Dismount at: ("
-                      << edge.exitCoord.latitude << ", "
-                      << edge.exitCoord.longitude << ")\n";
+                      << nextEdge.exitCoord.latitude << ", "
+                      << nextEdge.exitCoord.longitude << ")\n";
         }
         else
         {
-            std::cout << "Walk to final destination at: ("
-                      << edge.exitCoord.latitude << ", "
-                      << edge.exitCoord.longitude << ")\n";
+            std::cout << "  Dismount: (unknown – no next segment)\n";
         }
     }
-    std::cout << "=============================\n";
+    else
+    {
+        std::cout << "Walk to final destination at: ("
+                  << edge.exitCoord.latitude << ", "
+                  << edge.exitCoord.longitude << ")\n";
+    }
+}
+std::cout << "=============================\n";
+
 
     float totalFare = calculateTotalFare(bestPath, startCoord, endCoord);
     std::cout << "Total fare: " << std::fixed << std::setprecision(2)
