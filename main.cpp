@@ -51,27 +51,43 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
     }
 }
 
+void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters, int hour)
+{
+    network.createTransfersFromCoordinates(transferMeters);
+    std::cout << "Transfer range: " << transferMeters << " meters" << std::endl;
+    std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "From: " << fromName << " (" << from.latitude << ", " << from.longitude << ")" << std::endl;
+    std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
+    std::cout << "--------------------------------------------------" << std::endl;
+    network.calculateRouteFromCoordinates(from, to, hour);
+    std::cout << "--------------------------------------------------" << std::endl;
+}
+
 int main()
 {
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
 
-    jeepneyNetwork.createTransfersFromCoordinates(300.0f);
-    // Bonbon - Westbound Bulua Terminal
-    std::cout << "Bonbon - Westbound Bulua Terminal" << std::endl;
-    jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.51133, 124.62429}, 10);
+    float transferRange = 50.0f;
 
-    std::cout << std::endl;
+    testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.51133, 124.62429}, "Westbound Bulua Terminal", transferRange, 10);
 
-    // Bonbon - Velez Mogchs
-    std::cout << "Westbound Bulua Terminal - Velez Mogchs" << std::endl;
-    jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.482906, 124.646094}, 10);
+    // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
+    // // Bonbon - Westbound Bulua Terminal
+    // std::cout << "Bonbon - Westbound Bulua Terminal" << std::endl;
+    // jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.51133, 124.62429}, 10);
 
-    std::cout << std::endl;
+    // std::cout << std::endl;
 
-    // Kauswagan City Engineer - USTP
-    std::cout << "Kauswagan City Engineer - USTP" << std::endl;
-    jeepneyNetwork.calculateRouteFromCoordinates({8.504775, 124.642954}, {8.484763, 124.655977}, 10);
+    // // Bonbon - Velez Mogchs
+    // std::cout << "Westbound Bulua Terminal - Velez Mogchs" << std::endl;
+    // jeepneyNetwork.calculateRouteFromCoordinates({8.50881, 124.64827}, {8.482906, 124.646094}, 10);
+
+    // std::cout << std::endl;
+
+    // // Kauswagan City Engineer - USTP
+    // std::cout << "Kauswagan City Engineer - USTP" << std::endl;
+    // jeepneyNetwork.calculateRouteFromCoordinates({8.504775, 124.642954}, {8.484763, 124.655977}, 10);
     return 0;
 }
 
