@@ -43,6 +43,12 @@ struct TFTFEdge
     float totalCost() const;
 };
 
+struct RoutePathInstruction{
+    int routeId;
+    std::string routeName;
+    std::vector<Coordinate> path;
+};
+
 struct RouteNode
 {
     int routeId;
@@ -60,6 +66,7 @@ public:
                  float transferCost, Coordinate entryCoord = {}, Coordinate exitCoord = {});
     void visualize() const;
     void setRoutePath(int routeId, const std::vector<Coordinate> &coordinates);
+    std::vector<RoutePathInstruction> constructRoutePathInstructions(const std::vector<TFTFEdge> &path) const;
     void createTransfersFromCoordinates(float transferRangeMeters);
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord, int hour);
