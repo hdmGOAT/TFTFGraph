@@ -22,24 +22,18 @@ struct Coordinate
 
 bool operator==(const Coordinate &lhs, const Coordinate &rhs);
 
-enum class EdgeType
-{
-    Ride,
-    Transfer
+struct TransferZone{
+    int routeId;
+    Coordinate start;
+    Coordinate end;
+    Coordinate closestCoord;
 };
 
 struct TFTFEdge
 {
-    int destinationRoute;
-    int originRoute;
-    std::string destinationRouteName;
     float transferCost;
-    Coordinate entryCoord;
-    Coordinate exitCoord;
-    int entryIndex = -1;
-    int exitIndex = -1;
-
-    float totalCost() const;
+    TransferZone transferZone1;
+    TransferZone transferZone2;
 };
 
 struct RoutePathInstruction{
@@ -61,15 +55,13 @@ class TFTFGraph
 {
 public:
     void addRoute(int id, const std::string &name);
-    void addEdge(int fromRoute, int toRoute, const std::string &toName,
-                 float transferCost, Coordinate entryCoord = {}, Coordinate exitCoord = {});
-    void visualize() const;
     void setRoutePath(int routeId, const std::vector<Coordinate> &coordinates);
     std::vector<RoutePathInstruction> constructRoutePathInstructions(const std::vector<TFTFEdge> &path) const;
     void createTransfersFromCoordinates(float transferRangeMeters);
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord, int hour);
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);
+    void addEdge(int routeId1, int routeId2, TransferZone route1, TransferZone route2, float transferCost);
     std::vector<const RouteNode *> extractTraversedRouteNodes(const std::vector<TFTFEdge> &path) const;
     std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId,int projectedStartIdx);
 

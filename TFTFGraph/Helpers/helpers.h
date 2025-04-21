@@ -16,4 +16,11 @@ float getSubpathDistance(const std::vector<Coordinate>& coords, int i1, int i2, 
 std::vector<Coordinate> densifyPath(const std::vector<Coordinate>& path, float spacingMeters) ;
 double roundUpToNearest2_5(double amount);
 std::vector<Coordinate> getFullSegmentPath(const std::vector<Coordinate> &path, int startIdx, int endIdx, bool isLoop);
+std::vector<Coordinate> getShortestSegmentPath(
+    const std::vector<Coordinate> &path,
+    const Coordinate &startCoord,
+    const Coordinate &endCoord,
+    bool isLoop);
+
+
 #endif
