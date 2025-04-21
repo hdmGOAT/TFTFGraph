@@ -132,9 +132,8 @@ double TFTFGraph::calculateTotalFare(
         TFTFEdge nextEdge = path[i];
         if (i + 1 < path.size())
         {
-        nextEdge = path[i + 1];
-        }      
-
+            nextEdge = path[i + 1];
+        }
 
         // if it's the first edge, calculate distance from start to the first edge's exit
         if (i == 0)
@@ -237,17 +236,13 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
             subPath.erase(subPath.begin());
         }
 
-        routeInstructions.push_back({
-            route->routeId,
-            route->routeName,
-            subPath
-        });
+        routeInstructions.push_back({route->routeId,
+                                     route->routeName,
+                                     subPath});
     }
 
     return routeInstructions;
 }
-
-
 
 void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
 {
@@ -471,14 +466,15 @@ void printRoutePathInstructions(const std::vector<RoutePathInstruction> &instruc
         std::cout << "Route ID: " << instr.routeId << "\n";
         std::cout << "Route Name: " << instr.routeName << "\n";
         std::cout << "Path Coordinates (" << instr.path.size() << " points):\n";
+
         for (const auto &coord : instr.path)
         {
-            std::cout << "  (" << coord.latitude << ", " << coord.longitude << ")\n";
+            std::cout << std::fixed << std::setprecision(6); // or however many decimal places you want
+            std::cout << "  [" << coord.longitude << ", " << coord.latitude << "],\n";
         }
         std::cout << "-----------------------------\n";
     }
 }
-
 
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate &startCoord,
@@ -580,7 +576,6 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     endEdge.exitCoord = endCoord;
     bestPath.push_back(endEdge);
 
-
     std::cout << "\n==== Route Instructions ====\n";
     for (size_t i = 0; i < bestPath.size(); ++i)
     {
@@ -590,24 +585,24 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         {
             std::cout << std::fixed << std::setprecision(6);
             std::cout << "Start at coordinates: ("
-                    << edge.entryCoord.latitude << ", "
-                    << edge.entryCoord.longitude << ")\n";
+                      << edge.entryCoord.latitude << ", "
+                      << edge.entryCoord.longitude << ")\n";
         }
 
         if (edge.destinationRoute != -1)
         {
             std::cout << "Take route: " << edge.destinationRouteName << "\n";
             std::cout << "  Mount at: ("
-                    << edge.entryCoord.latitude << ", "
-                    << edge.entryCoord.longitude << ")\n";
+                      << edge.entryCoord.latitude << ", "
+                      << edge.entryCoord.longitude << ")\n";
 
             // Safe check before accessing nextEdge
             if (i + 1 < bestPath.size())
             {
                 const TFTFEdge &nextEdge = bestPath[i + 1];
                 std::cout << "  Dismount at: ("
-                        << nextEdge.exitCoord.latitude << ", "
-                        << nextEdge.exitCoord.longitude << ")\n";
+                          << nextEdge.exitCoord.latitude << ", "
+                          << nextEdge.exitCoord.longitude << ")\n";
             }
             else
             {
@@ -617,12 +612,11 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         else
         {
             std::cout << "Walk to final destination at: ("
-                    << edge.exitCoord.latitude << ", "
-                    << edge.exitCoord.longitude << ")\n";
+                      << edge.exitCoord.latitude << ", "
+                      << edge.exitCoord.longitude << ")\n";
         }
     }
     std::cout << "=============================\n";
-
 
     std::cout << "Total fare: " << std::fixed << std::setprecision(2)
               << roundUpToNearest2_5(bestFare) << " pesos" << std::endl;
