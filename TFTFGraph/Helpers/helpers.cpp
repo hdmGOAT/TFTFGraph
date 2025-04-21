@@ -3,6 +3,7 @@
 #include <iostream>
 #include "helpers.h"
 #include "../TFTFGraph.h"
+#include <algorithm>
 
 Coordinate interpolate(const Coordinate &start, const Coordinate &end, float t)
 {
@@ -255,4 +256,60 @@ std::vector<Coordinate> getFullSegmentPath(const std::vector<Coordinate> &path, 
     }
 
     return segmentPath;
+}
+
+
+std::vector<Coordinate> getShortestSegmentPath(
+    const std::vector<Coordinate> &path,
+    const Coordinate &startCoord,
+    const Coordinate &endCoord,
+    bool isLoop)
+{
+    int startIdx = getClosestIndex(path, startCoord);
+    int endIdx = getClosestIndex(path, endCoord);
+
+    if (startIdx == -1 || endIdx == -1)
+        return {}; // invalid input
+
+    std::vector<Coordinate> forwardPath;
+    std::vector<Coordinate> loopPath;
+
+    if (startIdx <= endIdx)
+    {
+        forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
+    }
+    else
+    {
+        forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.end());
+        forwardPath.insert(forwardPath.end(), path.begin(), path.begin() + endIdx + 1);
+    }
+
+    if (isLoop)
+    {
+        if (endIdx <= startIdx)
+        {
+            loopPath.insert(loopPath.end(), path.begin() + endIdx, path.begin() + startIdx + 1);
+        }
+        else
+        {
+            loopPath.insert(loopPath.end(), path.begin() + endIdx, path.end());
+            loopPath.insert(loopPath.end(), path.begin(), path.begin() + startIdx + 1);
+        }
+        std::reverse(loopPath.begin(), loopPath.end()); // reverse since we want start to end
+    }
+
+    // Compute distances
+    float forwardDist = 0.0f;
+    for (size_t i = 1; i < forwardPath.size(); ++i)
+        forwardDist += haversine(forwardPath[i - 1], forwardPath[i]);
+
+    float loopDist = std::numeric_limits<float>::infinity();
+    if (isLoop)
+    {
+        loopDist = 0.0f;
+        for (size_t i = 1; i < loopPath.size(); ++i)
+            loopDist += haversine(loopPath[i - 1], loopPath[i]);
+    }
+
+    return (forwardDist <= loopDist) ? forwardPath : loopPath;
 }
