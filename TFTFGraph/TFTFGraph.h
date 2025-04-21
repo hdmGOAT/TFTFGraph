@@ -38,7 +38,6 @@ struct TFTFEdge
     Coordinate exitCoord;
     int entryIndex = -1;
     int exitIndex = -1;
-    EdgeType type = EdgeType::Ride;
 
     float totalCost() const;
 };
@@ -72,7 +71,7 @@ public:
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord, int hour);
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);
     std::vector<const RouteNode *> extractTraversedRouteNodes(const std::vector<TFTFEdge> &path) const;
-    std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId, int hour, int projectedStartIdx);
+    std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId,int projectedStartIdx);
 
 private:
     std::unordered_map<int, RouteNode> routes;
