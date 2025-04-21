@@ -59,6 +59,7 @@ public:
     std::vector<RoutePathInstruction> constructRoutePathInstructions(const std::vector<TFTFEdge> &path) const;
     void createTransfersFromCoordinates(float transferRangeMeters);
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
+    double calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord, int hour);
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);
     void addEdge(int routeId1, int routeId2, TransferZone route1, TransferZone route2, float transferCost);
