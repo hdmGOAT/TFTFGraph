@@ -561,8 +561,8 @@ void writeRoutePathInstructionsToGeoJSON(
 
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate &startCoord,
-    const Coordinate &endCoord,
-    int hour)
+    const Coordinate &endCoord
+    )
 {
 
     std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
