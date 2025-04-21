@@ -21,11 +21,6 @@ bool operator==(const Coordinate &lhs, const Coordinate &rhs)
     return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude;
 }
 
-float TFTFEdge::totalCost() const
-{
-
-    return (transferCost);
-}
 
 void TFTFGraph::addRoute(int routeId, const std::string &routeName)
 {
@@ -49,29 +44,18 @@ void TFTFGraph::setRoutePath(int routeId, const std::vector<Coordinate> &coordin
 
 // adds an edge (connection) between two routes in the graph
 void TFTFGraph::addEdge(
-    int fromRoute,
-    int toRoute,
-    const std::string &toName,
-    float transferCost,
-    Coordinate entryCoord,
-    Coordinate exitCoord)
+    int routeId1,
+    int routeId2,
+    TransferZone route1,
+    TransferZone route2,
+    float transferCost)
 {
-    int entryIndex = getClosestIndex(routes[fromRoute].path, entryCoord);
-    int exitIndex = getClosestIndex(routes[toRoute].path, exitCoord);
 
-    // Create a TFTFEdge explicitly
     TFTFEdge edge;
-    edge.destinationRoute = toRoute;
-    edge.originRoute = fromRoute;
-    edge.destinationRouteName = toName;
     edge.transferCost = transferCost;
-    edge.entryCoord = entryCoord;
-    edge.exitCoord = exitCoord;
-    edge.entryIndex = entryIndex;
-    edge.exitIndex = exitIndex;
-
-    // Push to the edges list
-    routes[fromRoute].edges.push_back(edge);
+    edge.transferZone1 = route1;
+    edge.transferZone2 = route2;
+    routes[routeId1].edges.push_back(edge);
 }
 
 std::vector<const RouteNode *> TFTFGraph::extractTraversedRouteNodes(
@@ -84,20 +68,25 @@ std::vector<const RouteNode *> TFTFGraph::extractTraversedRouteNodes(
         return routeNodes;
 
     // check if the origin route of the first edge exists in the routes map
-    if (routes.count(path.front().originRoute))
+    if (routes.count(path.front().transferZone1.routeId))
     {
         // add the origin route node of the first edge to the result
-        routeNodes.push_back(&routes.at(path.front().originRoute));
+        routeNodes.push_back(&routes.at(path.front().transferZone1.routeId));
+    }
+    else if (routes.count(path.front().transferZone1.routeId))
+    {
+        // add the origin route node of the first edge to the result
+        routeNodes.push_back(&routes.at(path.front().transferZone1.routeId));
     }
 
     // iterate through the edges in the given path
     for (const auto &edge : path)
     {
         // check if the destination route of the current edge exists in the routes map
-        if (routes.count(edge.destinationRoute))
+        if (routes.count(edge.transferZone2.routeId))
         {
             // add the destination route node to the result
-            routeNodes.push_back(&routes.at(edge.destinationRoute));
+            routeNodes.push_back(&routes.at(edge.transferZone2.routeId));
         }
     }
 
@@ -139,7 +128,7 @@ double TFTFGraph::calculateTotalFare(
         if (i == 0)
         {
             int startIdx = getClosestIndex(takenRoutes[0]->path, projectedStart);
-            int endIdx = getClosestIndex(takenRoutes[0]->path, edge.exitCoord);
+            int endIdx = getClosestIndex(takenRoutes[0]->path, edge.transferZone2.closestCoord);
 
             // skip if segment would wrap around a non-loop route
             if (!takenRoutes[0]->isLoop && startIdx > endIdx)
@@ -147,12 +136,12 @@ double TFTFGraph::calculateTotalFare(
                 continue;
             }
 
-            distance += getActualSegmentDistance(projectedStart, edge.exitCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
+            distance += getActualSegmentDistance(projectedStart, edge.transferZone2.closestCoord, takenRoutes[0]->path, takenRoutes[0]->isLoop);
         }
         // if it's the last edge, calculate distance from the last edge's entry to the end
         else if (i == path.size() - 1)
         {
-            int startIdx = getClosestIndex(takenRoutes.back()->path, edge.entryCoord);
+            int startIdx = getClosestIndex(takenRoutes.back()->path, edge.transferZone1.closestCoord);
             int endIdx = getClosestIndex(takenRoutes.back()->path, projectedEnd);
 
             // skip if segment would wrap around a non-loop route
@@ -160,13 +149,13 @@ double TFTFGraph::calculateTotalFare(
             {
                 continue;
             }
-            distance += getActualSegmentDistance(edge.entryCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
+            distance += getActualSegmentDistance(edge.transferZone1.closestCoord, projectedEnd, takenRoutes.back()->path, takenRoutes.back()->isLoop);
         }
         // for all other edges, calculate distance between entry and exit coordinates
         else
         {
-            int startIdx = getClosestIndex(takenRoutes[i]->path, edge.entryCoord);
-            int endIdx = getClosestIndex(takenRoutes[i]->path, nextEdge.exitCoord);
+            int startIdx = getClosestIndex(takenRoutes[i]->path, edge.transferZone1.closestCoord);
+            int endIdx = getClosestIndex(takenRoutes[i]->path, nextEdge.transferZone2.closestCoord);
 
             // skip if segment would wrap around a non-loop route
             if (!takenRoutes[i]->isLoop && startIdx > endIdx)
@@ -174,13 +163,29 @@ double TFTFGraph::calculateTotalFare(
                 continue;
             }
 
-            distance += getActualSegmentDistance(edge.entryCoord, nextEdge.exitCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
+            distance += getActualSegmentDistance(edge.transferZone1.closestCoord, nextEdge.transferZone2.closestCoord, takenRoutes[i]->path, takenRoutes[i]->isLoop);
         }
     }
 
-    // calculate total fare based on the number of routes taken and the total distance
-    totalFare = BASE_FARE * takenRoutes.size();       // add fare for number of routes taken
-    totalFare += ((distance / 1000.0) * FARE_PER_KM); // add fare based on distance (converted to kilometers)
+    constexpr float BASE_FARE = 12.0f;
+    constexpr float FARE_PER_4KM = 1.5f;
+    constexpr float FREE_KM = 4.0f;
+
+    float distanceInKm = distance / 1000.0f;
+
+    // Base fare applies per route taken
+    totalFare = BASE_FARE * takenRoutes.size();
+
+    // Compute extra fare if distance exceeds free 4 km
+    if (distanceInKm > FREE_KM)
+    {
+        float extraDistance = distanceInKm - FREE_KM;
+
+        // Round up to the next 4km block
+        int extraBlocks = static_cast<int>(std::ceil(extraDistance / 4.0f));
+
+        totalFare += extraBlocks * FARE_PER_4KM;
+}
 
     return totalFare;
 }
@@ -210,23 +215,26 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
         const RouteNode *route = takenRoutes[i];
         std::vector<Coordinate> subPath;
 
+        std::cout << "Route ID: " << route->routeId << "\n";
+
         if (i == 0)
         {
             // First edge: from projected start to exit
-            int startIdx = getClosestIndex(route->path, edge.entryCoord);
-            subPath = getFullSegmentPath(route->path, startIdx, edge.exitIndex, route->isLoop);
+            int startIdx = getClosestIndex(route->path, edge.transferZone1.closestCoord);
+            int endIxd = getClosestIndex(route->path, edge.transferZone2.closestCoord);
+            subPath = getFullSegmentPath(route->path, startIdx, endIxd, route->isLoop);
         }
         else if (i == path.size() - 1)
         {
-            // Last edge: from entry to projected end
-            int endIdx = getClosestIndex(route->path, edge.entryCoord);
-            subPath = getFullSegmentPath(route->path, edge.entryIndex, endIdx, route->isLoop);
+            subPath = getShortestSegmentPath(route->path, edge.transferZone1.closestCoord, edge.transferZone2.closestCoord, route->isLoop);
         }
         else
         {
             // Intermediate: entry to exit of next
             const TFTFEdge &nextEdge = path[i + 1];
-            subPath = getFullSegmentPath(route->path, edge.entryIndex, nextEdge.exitIndex, route->isLoop);
+            int startIdx = getClosestIndex(route->path, edge.transferZone2.closestCoord);
+            int endIdx = getClosestIndex(route->path, nextEdge.transferZone1.closestCoord);
+            subPath = getShortestSegmentPath(route->path, edge.transferZone2.closestCoord, nextEdge.transferZone1.closestCoord, route->isLoop);
         }
 
         // Avoid duplicate join point
@@ -248,15 +256,14 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
 
     return routeInstructions;
 }
-
 void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
 {
     std::unordered_map<std::pair<int, int>, std::vector<std::pair<int, Coordinate>>, PairHash> spatialGrid;
 
-    // Step 1: Populate the spatial grid with densified paths
+    // Step 1: Populate spatial grid with densified paths
     for (auto &[routeID, route] : routes)
     {
-        auto densePath = densifyPath(route.path, 25.0f); // Every 100 meters
+        auto densePath = densifyPath(route.path, 25.0f);
         for (const auto &coord : densePath)
         {
             auto cell = hashCoordinate(coord, transferRangeMeters);
@@ -264,11 +271,18 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
         }
     }
 
-    // Step 2: Add best transfer per target route every ~500 meters
+    // Step 2: Store best transfers per (fromID, toID)
+    struct TransferCandidate {
+        Coordinate fromCoord;
+        Coordinate toCoord;
+        float dist;
+    };
+
+    std::map<std::pair<int, int>, TransferCandidate> bestTransfers;
+
+    // Step 3: Find closest coord pairs within range
     for (const auto &[fromID, fromRoute] : routes)
     {
-        std::unordered_map<int, std::pair<Coordinate, float>> lastTransferPerRoute; // toID -> (lastFromCoord, distanceSinceLastTransfer)
-
         for (const auto &fromCoord : fromRoute.path)
         {
             auto baseCell = hashCoordinate(fromCoord, transferRangeMeters);
@@ -279,66 +293,52 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
                 {
                     std::pair<int, int> neighborCell = {baseCell.first + dx, baseCell.second + dy};
                     auto it = spatialGrid.find(neighborCell);
-                    if (it == spatialGrid.end())
-                        continue;
+                    if (it == spatialGrid.end()) continue;
 
                     for (const auto &[toID, toCoord] : it->second)
                     {
-                        if (toID == fromID)
-                            continue;
+                        if (toID == fromID) continue;
 
                         float dist = haversine(fromCoord, toCoord);
-                        if (dist > transferRangeMeters)
-                            continue;
+                        if (dist > transferRangeMeters) continue;
 
-                        // Check distance from last transfer to this route
-                        auto &entry = lastTransferPerRoute[toID];
-                        float fromLastDist = (entry.second > 0.0f) ? haversine(entry.first, fromCoord) : std::numeric_limits<float>::max();
-
-                        if (fromLastDist >= 500.0f || entry.second == 0.0f) // No transfer yet or far enough
+                        auto key = std::make_pair(fromID, toID);
+                        if (!bestTransfers.count(key) || dist < bestTransfers[key].dist)
                         {
-                            addEdge(fromID, toID, routes[toID].routeName, dist, fromCoord, toCoord);
-                            entry = {fromCoord, dist}; // Update last transfer
-                        }
-                        else if (dist < entry.second) // Closer transfer candidate
-                        {
-                            // Optional: update best known transfer if you want to keep the best within a 500m segment
-                            entry = {fromCoord, dist};
-                            // You could re-add/replace the edge if desired (requires edge removal or deduplication logic)
+                            bestTransfers[key] = {fromCoord, toCoord, dist};
                         }
                     }
                 }
             }
         }
     }
-}
 
-void TFTFGraph::visualize() const
-{
-    std::cout << "\nTFTF Graph Visualization";
-    std::cout << "\n===========================\n";
-
-    for (const auto &pair : routes)
+    // Step 4: Create edges using closest coord pair
+    for (const auto &[key, candidate] : bestTransfers)
     {
-        const RouteNode &node = pair.second;
-        std::cout << "Route " << node.routeId << ": " << node.routeName << "\n";
+        int fromID = key.first;
+        int toID = key.second;
 
-        if (node.edges.empty())
-        {
-            std::cout << "  (No outgoing transfers)\n";
-            continue;
-        }
+        TransferZone zone1 = {
+            .routeId = fromID,
+            .start = routes[fromID].path.front(),
+            .end = routes[fromID].path.back(),
+            .closestCoord = candidate.fromCoord
+        };
 
-        for (const auto &edge : node.edges)
-        {
-            std::cout << "  -> Route " << edge.destinationRoute << ": "
-                      << edge.destinationRouteName << "\n";
-            std::cout << "     Transfer Cost: " << edge.transferCost;
+        TransferZone zone2 = {
+            .routeId = toID,
+            .start = routes[toID].path.front(),
+            .end = routes[toID].path.back(),
+            .closestCoord = candidate.toCoord
+        };
 
-            std::cout << "\n";
-        }
+        addEdge(fromID, toID, zone1, zone2, candidate.dist);
     }
 }
+
+
+
 
 std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters)
 {
@@ -362,96 +362,110 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDi
 
     return nearby;
 }
-
-std::string makeEdgeKey(int routeId, int entryIdx, int exitIdx) {
-    return std::to_string(routeId) + "_" + std::to_string(entryIdx) + "_" + std::to_string(exitIdx);
-}
-
 std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     int startRouteId,
     int endRouteId,
-    int projectedStartIdx) 
+    int projectedStartIdx)
 {
-    constexpr float BASE_FARE = 12.0f;
-    constexpr float FARE_PER_KM = 1.5f;
-
-    struct FareState
-    {
-        float totalFare;
-        int prevRouteId;
-    };
-
-    struct FareNode
+    struct TransferNode
     {
         int routeId;
+        int transfers;
+        Coordinate currentPos;
+        std::vector<TFTFEdge> path;
         float fareSoFar;
-
-        bool operator>(const FareNode &other) const
-        {
-            return fareSoFar > other.fareSoFar;
-        }
     };
 
-    std::unordered_map<int, FareState> best;
-    std::unordered_map<int, TFTFEdge> prevEdge;
-    std::unordered_map<int, int> prevRoute;
+    std::queue<TransferNode> q;
+    std::unordered_map<int, int> minTransfers;  // routeId -> fewest transfers
+    std::vector<std::vector<TFTFEdge>> candidatePaths;
 
-    std::priority_queue<FareNode, std::vector<FareNode>, std::greater<FareNode>> pq;
+    Coordinate startPos = routes.at(startRouteId).path[projectedStartIdx];
+    q.push({startRouteId, 0, startPos, {}, 0.0f});
+    minTransfers[startRouteId] = 0;
 
-    best[startRouteId] = {0.0f, -1};
-    pq.push({startRouteId, 0.0f});
+    int minTransferCount = INT_MAX;
 
-    while (!pq.empty())
+    while (!q.empty())
     {
-        FareNode curr = pq.top();
-        pq.pop();
+        TransferNode curr = q.front();
+        q.pop();
 
-        int routeId = curr.routeId;
-        float fareSoFar = curr.fareSoFar;
+        if (curr.transfers > minTransferCount)
+            continue;  // Stop exploring once deeper than the shortest transfer path
 
-        for (const TFTFEdge &edge : routes.at(routeId).edges)
+        if (curr.routeId == endRouteId)
         {
-            int nextRoute = edge.destinationRoute;
+            minTransferCount = curr.transfers;
+            candidatePaths.push_back(curr.path);  // Store this path
+            continue;
+        }
 
-            if (routeId == startRouteId && !routes.at(routeId).isLoop)
+        for (const TFTFEdge &edge : routes.at(curr.routeId).edges)
+        {
+            int nextRouteId = edge.transferZone2.routeId;
+
+            // Prevent backward transfers on the first leg if not a loop
+            if (curr.routeId == startRouteId && !routes.at(curr.routeId).isLoop)
             {
-                if (edge.exitIndex < projectedStartIdx)
+                int transferIdx = getClosestIndex(routes.at(curr.routeId).path, edge.transferZone1.closestCoord);
+                if (transferIdx < projectedStartIdx)
                     continue;
             }
 
-            float fare = 0.0f;
+            if (minTransfers.count(nextRouteId) && curr.transfers + 1 > minTransfers[nextRouteId])
+                continue;  // We've already reached this with fewer transfers
 
-            float nextFare = fareSoFar + fare;
-            
-            
+            // Track minimal transfers
+            minTransfers[nextRouteId] = curr.transfers + 1;
 
-            if (!best.count(nextRoute) || nextFare < best[nextRoute].totalFare)
-            {
-                best[nextRoute] = {nextFare, routeId};
-                pq.push({nextRoute, nextFare});
-                prevEdge[nextRoute] = edge;
-                prevRoute[nextRoute] = routeId;
-            }
+            // Create new path and accumulate fare
+            std::vector<TFTFEdge> newPath = curr.path;
+            newPath.push_back(edge);
+            float newFare = curr.fareSoFar + edge.transferCost;
+
+            q.push({nextRouteId, curr.transfers + 1, edge.transferZone2.closestCoord, newPath, newFare});
         }
     }
 
-    std::vector<TFTFEdge> path;
-    if (!best.count(endRouteId))
+    // Select the candidate path with the lowest fare
+    if (candidatePaths.empty())
     {
         std::cout << "No path found from route " << startRouteId << " to route " << endRouteId << ".\n";
         return {};
     }
 
-    int current = endRouteId;
-    while (current != startRouteId && prevEdge.count(current))
+    std::vector<TFTFEdge> bestPath = candidatePaths[0];
+    float bestFare = 0.0f;
+    for (const TFTFEdge &e : bestPath)
+        bestFare += e.transferCost;
+
+    for (const auto &path : candidatePaths)
     {
-        path.push_back(prevEdge[current]);
-        current = prevRoute[current];
+        float totalFare = 0.0f;
+        for (const TFTFEdge &e : path)
+            totalFare += e.transferCost;
+
+        if (totalFare < bestFare)
+        {
+            bestFare = totalFare;
+            bestPath = path;
+        }
     }
 
-    std::reverse(path.begin(), path.end());
-    return path;
+    return bestPath;
 }
+
+
+struct PathState {
+    int routeId;
+    int index;
+    float totalDistance;
+    int transfers;
+    std::vector<TFTFEdge> path;
+};
+
+
 
 void printRoutePathInstructions(const std::vector<RoutePathInstruction> &instructions)
 {
@@ -558,13 +572,42 @@ void writeRoutePathInstructionsToGeoJSON(
     }
 }
 
+double TFTFGraph::calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions)
+{
+    constexpr float BASE_FARE = 12.0f;
+    constexpr float FARE_PER_4KM = 1.5f;
+    constexpr float FREE_KM = 4.0f;
+
+    double totalDistance = 0.0;
+
+    for (const auto &instr : routeInstructions)
+    {
+        const auto &path = instr.path;
+        for (size_t i = 1; i < path.size(); ++i)
+        {
+            totalDistance += haversine(path[i - 1], path[i]);
+        }
+    }
+
+    double totalFare = BASE_FARE * routeInstructions.size();
+    float distanceInKm = totalDistance / 1000.0f;
+
+    if (distanceInKm > FREE_KM)
+    {
+        float extraDistance = distanceInKm - FREE_KM;
+        int extraBlocks = static_cast<int>(std::ceil(extraDistance / 4.0f));
+        totalFare += extraBlocks * FARE_PER_4KM;
+    }
+
+    return totalFare;
+}
+
 
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate &startCoord,
     const Coordinate &endCoord
     )
 {
-
     std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
     std::vector<int> endCandidates = getNearbyRoutes(endCoord, 300.0f);
 
@@ -597,27 +640,32 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
                 double segmentDistance = getActualSegmentDistance(startCoord, endCoord, routes.at(startId).path, routes.at(startId).isLoop);
                 fare = BASE_FARE + (segmentDistance / 1000.0) * FARE_PER_KM;
 
-                // Simulate one direct TFTFEdge for uniformity
+                TransferZone startZone = {
+                    .routeId = startId,
+                    .start = routes[startId].path.front(),
+                    .end = routes[startId].path.back(),
+                    .closestCoord = projectOntoPath(startCoord, routes[startId].path)
+                };
+
+                TransferZone endZone = {
+                    .routeId = endId,
+                    .start = routes[endId].path.front(),
+                    .end = routes[endId].path.back(),
+                    .closestCoord = projectOntoPath(endCoord, routes[endId].path)
+                };
+
                 TFTFEdge edge;
-                edge.destinationRoute = startId;
-                edge.destinationRouteName = routes.at(startId).routeName;
-                edge.transferCost = 0.0f;
-                edge.entryCoord = projectOntoPath(startCoord, routes[startId].path);
-                std::cout << "Entry coord: ("
-                          << edge.entryCoord.latitude << ", "
-                          << edge.entryCoord.longitude << ")\n";
-                edge.exitCoord = projectOntoPath(endCoord, routes[endId].path);
-                std::cout << "Exit coord: ("
-                          << edge.exitCoord.latitude << ", "
-                          << edge.exitCoord.longitude << ")\n";
+                edge.transferCost = segmentDistance;
+                edge.transferZone1 = startZone;
+                edge.transferZone2 = endZone;
                 path.push_back(edge);
             }
             else
             {
                 int projStart = getClosestIndex(routes.at(startId).path, startCoord);
                 path = findMinFarePath(startId, endId, projStart);
-                if (path.empty())
-                    continue;
+                if (path.empty()) continue;
+
                 fare = calculateTotalFare(path, startCoord, endCoord);
             }
 
@@ -638,55 +686,74 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         return {};
     }
 
+    // Add artificial start edge if not same route
     if (!bestPathSameRoute)
     {
-        // Insert start edge
-        TFTFEdge startEdge;
-        startEdge.originRoute = bestPath.front().originRoute;
-        startEdge.destinationRoute = bestPath.front().destinationRoute;
-        startEdge.destinationRouteName = routes[bestStartRouteId].routeName;
-        startEdge.transferCost = 0.0f;
-        startEdge.entryCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path);
-        startEdge.exitCoord = bestPath.front().entryCoord;
+        TransferZone startZone = {
+            .routeId = bestStartRouteId,
+            .start = routes[bestStartRouteId].path.front(),
+            .end = routes[bestStartRouteId].path.back(),
+            .closestCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path)
+        };
+
+        TransferZone firstZone = bestPath.front().transferZone1;
+
+        TFTFEdge startEdge = {
+            .transferCost = 0.0f,
+            .transferZone1 = startZone,
+            .transferZone2 = firstZone
+        };
+
         bestPath.insert(bestPath.begin(), startEdge);
     }
-    // Insert end edge
-    TFTFEdge endEdge;
-    endEdge.destinationRoute = -1;
-    endEdge.destinationRouteName = "Destination";
-    endEdge.transferCost = 0.0f;
-    endEdge.entryCoord = bestPath.back().exitCoord;
-    endEdge.entryIndex = bestPath.back().exitIndex;
-    endEdge.exitCoord = endCoord;
+
+    // Add artificial end edge
+    TransferZone lastZone = bestPath.back().transferZone2;
+
+    TransferZone endZone = {
+        .routeId = -1,
+        .start = endCoord,
+        .end = endCoord,
+        .closestCoord = endCoord
+    };
+
+    TFTFEdge endEdge = {
+        .transferCost = 0.0f,
+        .transferZone1 = lastZone,
+        .transferZone2 = endZone
+    };
+
     bestPath.push_back(endEdge);
 
+    // ==== PRINT INSTRUCTIONS ====
     std::cout << "\n==== Route Instructions ====\n";
     for (size_t i = 0; i < bestPath.size(); ++i)
     {
         const TFTFEdge &edge = bestPath[i];
 
+        std::cout << std::fixed << std::setprecision(6);
+
         if (i == 0)
         {
-            std::cout << std::fixed << std::setprecision(6);
             std::cout << "Start at coordinates: ("
-                      << edge.entryCoord.latitude << ", "
-                      << edge.entryCoord.longitude << ")\n";
+                      << edge.transferZone1.closestCoord.latitude << ", "
+                      << edge.transferZone1.closestCoord.longitude << ")\n";
         }
 
-        if (edge.destinationRoute != -1)
+        if (edge.transferZone2.routeId != -1)
         {
-            std::cout << "Take route: " << edge.destinationRouteName << "\n";
+            std::cout << "Take route: " << routes[edge.transferZone2.routeId].routeName << "\n";
             std::cout << "  Mount at: ("
-                      << edge.entryCoord.latitude << ", "
-                      << edge.entryCoord.longitude << ")\n";
+                      << edge.transferZone1.closestCoord.latitude << ", "
+                      << edge.transferZone1.closestCoord.longitude << ")\n";
 
-            // Safe check before accessing nextEdge
+            // Dismount is at the next edge's mount, or the final point
             if (i + 1 < bestPath.size())
             {
                 const TFTFEdge &nextEdge = bestPath[i + 1];
                 std::cout << "  Dismount at: ("
-                          << nextEdge.exitCoord.latitude << ", "
-                          << nextEdge.exitCoord.longitude << ")\n";
+                          << nextEdge.transferZone2.closestCoord.latitude << ", "
+                          << nextEdge.transferZone1.closestCoord.longitude << ")\n";
             }
             else
             {
@@ -696,22 +763,23 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         else
         {
             std::cout << "Walk to final destination at: ("
-                      << edge.exitCoord.latitude << ", "
-                      << edge.exitCoord.longitude << ")\n";
+                      << edge.transferZone2.closestCoord.latitude << ", "
+                      << edge.transferZone2.closestCoord.longitude << ")\n";
         }
     }
-    std::cout << "=============================\n";
 
-    std::cout << "Total fare: " << std::fixed << std::setprecision(2)
-              << roundUpToNearest2_5(bestFare) << " pesos" << std::endl;
-
-    std::cout << "=============================\n";
 
     std::vector<RoutePathInstruction> routeInstructions = constructRoutePathInstructions(bestPath);
-
+    double fare = calculateFareFromInstructions(routeInstructions);
     writeRoutePathInstructionsToGeoJSON(routeInstructions, "route_path.geojson", startCoord, endCoord);
 
     std::cout << "=============================\n";
+    double roundedFare = std::ceil(fare);
 
+    std::cout << "Total fare: " << std::fixed << std::setprecision(2)
+          << roundedFare << " pesos\n";
+    std::cout << "=============================\n";
+
+ 
     return bestPath;
 }
