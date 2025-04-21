@@ -1,18 +1,23 @@
 #include <iostream>
-#include "json.hpp"
+#include "./algorithms/djikstra/djikstra.h"
 
-int main(int argc, char *argv[])
+int main()
 {
-    int a = std::stoi(argv[1]);
-    int b = std::stoi(argv[2]);
+    Node origin{8.508810, 124.648270};      // Example coordinates (lat, lon)
+    Node destination{8.511330, 124.624290}; // Change as needed
 
-    int result = a + b;
+    std::string filename = "routes.geojson"; // Your GeoJSON file
 
-    nlohmann::json response;
-    response["a"] = a;
-    response["b"] = b;
-    response["result"] = result;
+    std::vector<Node> path = dijkstra_geojson(filename, origin, destination);
 
-    std::cout << response.dump();
+    if (path.empty())
+    {
+        std::cout << "No path found between origin and destination.\n";
+    }
+    else
+    {
+        std::cout << "Path found with " << path.size() << " points.\n";
+    }
+
     return 0;
 }
