@@ -237,3 +237,22 @@ int getClosestIndex(const std::vector<Coordinate> &path, const Coordinate &coord
 
     return index;
 }
+
+std::vector<Coordinate> getFullSegmentPath(const std::vector<Coordinate> &path, int startIdx, int endIdx, bool isLoop)
+{
+    std::vector<Coordinate> segmentPath;
+
+    if (isLoop && startIdx > endIdx)
+    {
+        // Wrap-around: insert from startIdx to end, then from 0 to endIdx
+        segmentPath.insert(segmentPath.end(), path.begin() + startIdx, path.end());
+        segmentPath.insert(segmentPath.end(), path.begin(), path.begin() + endIdx + 1);
+    }
+    else
+    {
+        // Normal slice
+        segmentPath.insert(segmentPath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
+    }
+
+    return segmentPath;
+}
