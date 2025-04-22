@@ -232,8 +232,6 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
         {
             // Intermediate: entry to exit of next
             const TFTFEdge &nextEdge = path[i + 1];
-            int startIdx = getClosestIndex(route->path, edge.transferZone2.closestCoord);
-            int endIdx = getClosestIndex(route->path, nextEdge.transferZone1.closestCoord);
             subPath = getShortestSegmentPath(route->path, edge.transferZone2.closestCoord, nextEdge.transferZone1.closestCoord, route->isLoop);
         }
 
@@ -336,8 +334,6 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
         addEdge(fromID, toID, zone1, zone2, candidate.dist);
     }
 }
-
-
 
 
 std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters)
