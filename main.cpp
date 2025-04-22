@@ -51,7 +51,7 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
     }
 }
 
-void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters, int hour)
+void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters)
 {
     network.createTransfersFromCoordinates(transferMeters);
     std::cout << "Transfer range: " << transferMeters << " meters" << std::endl;
@@ -59,7 +59,7 @@ void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordin
     std::cout << "From: " << fromName << " (" << from.latitude << ", " << from.longitude << ")" << std::endl;
     std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
-    network.calculateRouteFromCoordinates(from, to, hour);
+    network.calculateRouteFromCoordinates(from, to);
     std::cout << "--------------------------------------------------" << std::endl;
 }
 
@@ -70,10 +70,10 @@ int main()
 
     float transferRange = 100.5f;
 
-    testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange, 10);
-    // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange, 10);
-    // testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange, 10);
-    // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange, 10);
+    //testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
+    // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
+     testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
+    // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
 
     // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
     // // Bonbon - Westbound Bulua Terminal

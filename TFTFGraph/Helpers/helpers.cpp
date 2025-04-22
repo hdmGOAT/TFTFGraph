@@ -258,6 +258,36 @@ std::vector<Coordinate> getFullSegmentPath(const std::vector<Coordinate> &path, 
     return segmentPath;
 }
 
+std::vector<int> getCandidatePathIndexes(
+    const std::vector<Coordinate> &path,
+    const Coordinate &target,
+    float radiusMeters = 30.0f,
+    int minIndexSeparation = 5)
+{
+    std::vector<int> candidates;
+
+    for (size_t i = 0; i < path.size(); ++i)
+    {
+        float dist = haversine(path[i], target);
+        if (dist <= radiusMeters)
+        {
+            // Skip if index is too close to any existing candidate
+            bool tooClose = false;
+            for (int c : candidates)
+            {
+                if (std::abs(static_cast<int>(i) - c) < minIndexSeparation)
+                {
+                    tooClose = true;
+                    break;
+                }
+            }
+            if (!tooClose)
+                candidates.push_back(static_cast<int>(i));
+        }
+    }
+
+    return candidates;
+}
 
 std::vector<Coordinate> getShortestSegmentPath(
     const std::vector<Coordinate> &path,
@@ -265,51 +295,54 @@ std::vector<Coordinate> getShortestSegmentPath(
     const Coordinate &endCoord,
     bool isLoop)
 {
-    int startIdx = getClosestIndex(path, startCoord);
-    int endIdx = getClosestIndex(path, endCoord);
+    const float radiusMeters = 30.0f;
+    const int minIndexSeparation = 5;
 
-    if (startIdx == -1 || endIdx == -1)
-        return {}; // invalid input
+    std::vector<int> startCandidates = getCandidatePathIndexes(path, startCoord, radiusMeters, minIndexSeparation);
+    std::vector<int> endCandidates = getCandidatePathIndexes(path, endCoord, radiusMeters, minIndexSeparation);
 
-    std::vector<Coordinate> forwardPath;
-    std::vector<Coordinate> loopPath;
+    if (startCandidates.empty() || endCandidates.empty())
+        return {};
 
-    if (startIdx <= endIdx)
+    std::vector<Coordinate> bestPath;
+    float bestDist = std::numeric_limits<float>::infinity();
+
+    for (int startIdx : startCandidates)
     {
-        forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
-    }
-    else
-    {
-        forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.end());
-        forwardPath.insert(forwardPath.end(), path.begin(), path.begin() + endIdx + 1);
-    }
-
-    if (isLoop)
-    {
-        if (endIdx <= startIdx)
+        for (int endIdx : endCandidates)
         {
-            loopPath.insert(loopPath.end(), path.begin() + endIdx, path.begin() + startIdx + 1);
+            std::vector<Coordinate> candidatePath;
+
+            if (startIdx <= endIdx)
+            {
+                candidatePath.insert(candidatePath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
+            }
+            else
+            {
+                // Wrap around if looping
+                if (isLoop)
+                {
+                    candidatePath.insert(candidatePath.end(), path.begin() + startIdx, path.end());
+                    candidatePath.insert(candidatePath.end(), path.begin(), path.begin() + endIdx + 1);
+                }
+                else
+                {
+                    continue; // invalid in non-loop
+                }
+            }
+
+            // Compute actual distance
+            float dist = 0.0f;
+            for (size_t i = 1; i < candidatePath.size(); ++i)
+                dist += haversine(candidatePath[i - 1], candidatePath[i]);
+
+            if (dist < bestDist)
+            {
+                bestDist = dist;
+                bestPath = candidatePath;
+            }
         }
-        else
-        {
-            loopPath.insert(loopPath.end(), path.begin() + endIdx, path.end());
-            loopPath.insert(loopPath.end(), path.begin(), path.begin() + startIdx + 1);
-        }
-        std::reverse(loopPath.begin(), loopPath.end()); // reverse since we want start to end
     }
 
-    // Compute distances
-    float forwardDist = 0.0f;
-    for (size_t i = 1; i < forwardPath.size(); ++i)
-        forwardDist += haversine(forwardPath[i - 1], forwardPath[i]);
-
-    float loopDist = std::numeric_limits<float>::infinity();
-    if (isLoop)
-    {
-        loopDist = 0.0f;
-        for (size_t i = 1; i < loopPath.size(); ++i)
-            loopDist += haversine(loopPath[i - 1], loopPath[i]);
-    }
-
-    return (forwardDist <= loopDist) ? forwardPath : loopPath;
+    return bestPath;
 }
