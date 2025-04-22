@@ -272,28 +272,7 @@
             124.63965,
             8.48891,
             0
-<<<<<<< HEAD
-          ]
-        ],
-        "type": "LineString"
-      },
-      "properties": {
-        "name": "Bonbon (R1) – Cogon Public Market",
-        "route_id": 8,
-<<<<<<< HEAD
-        "stroke": "#a8d5dd"
-=======
-        "stroke": "#47abcb"
->>>>>>> refs/remotes/origin/main
-      },
-      "type": "Feature"
-    },
-    {
-      "geometry": {
-        "coordinates": [
-=======
           ],
->>>>>>> refs/remotes/origin/main
           [
             124.63985,
             8.4889,
@@ -618,21 +597,9 @@
         "type": "LineString"
       },
       "properties": {
-<<<<<<< HEAD
-<<<<<<< HEAD
-        "name": "Bulua (R4) – Cogon Public Market",
-        "route_id": 7,
-        "stroke": "#487ee7"
-=======
-        "name": "NHA - Agora Terminal",
-        "route_id": 3,
-        "stroke": "#1f38ba"
->>>>>>> refs/remotes/origin/main
-=======
         "name": "Patag - Divisoria",
         "route_id": 0,
-        "stroke": "#3920a3"
->>>>>>> refs/remotes/origin/main
+        "stroke": "#9c3e0e"
       },
       "type": "Feature"
     },
@@ -1130,7 +1097,7 @@
       "properties": {
         "name": "Directions from 594 Gaabucayan St, Cagayan de Oro, Misamis Oriental, Philippines to FJJP+4V7, Ipil St, Cagayan de Oro, Misamis Oriental, Philippines",
         "route_id": 5,
-        "stroke": "#a73e4a"
+        "stroke": "#2f1b7e"
       },
       "type": "Feature"
     },

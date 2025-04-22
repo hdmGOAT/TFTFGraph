@@ -1,14 +1,24 @@
 #include <iostream>
-#include "./algorithms/djikstra/djikstra.h"
+#include "../algorithms/djikstra/djikstra.h"
 
 int main()
 {
-    Node origin{8.508810, 124.648270};      // Example coordinates (lat, lon)
-    Node destination{8.511330, 124.624290}; // Change as needed
+    Node Bulua_Terminal{8.511330, 124.624290};
 
-    std::string filename = "routes.geojson"; // Your GeoJSON file
+    Node Bonbon{8.50881, 124.64827};
+    Node Velez_Mogchs{8.482906, 124.646094};
 
-    std::vector<Node> path = dijkstra_geojson(filename, origin, destination);
+    Node Kauswagan_City_Engineer{8.504775, 124.642954};
+    Node USTP{8.484763, 124.655977};
+
+    Node Camp_Evangelista{8.487358, 124.629950};
+
+    std::string filename = "../routes.geojson";
+
+    // std::cout << "Finding path from Kauswagan City Engineer to USTP...\n";
+    // std::cout << "Finding path from Bonbon to Bulua Terminal...\n";
+    std::cout << "Finding path from Camp Evangelista to USTP...\n";
+    std::vector<Node> path = dijkstra_geojson(filename, Camp_Evangelista, USTP);
 
     if (path.empty())
     {
