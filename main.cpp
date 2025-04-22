@@ -70,10 +70,10 @@ int main()
 
     float transferRange = 100.5f;
 
-    //testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
+     testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
-     testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
-    // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
+    // testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
+    testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
 
     // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
     // // Bonbon - Westbound Bulua Terminal

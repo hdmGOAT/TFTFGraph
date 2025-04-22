@@ -223,16 +223,19 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
             int startIdx = getClosestIndex(route->path, edge.transferZone1.closestCoord);
             int endIxd = getClosestIndex(route->path, edge.transferZone2.closestCoord);
             subPath = getFullSegmentPath(route->path, startIdx, endIxd, route->isLoop);
+            std::cout << "Subpath size: " << subPath.size() << "\n";
         }
         else if (i == path.size() - 1)
         {
             subPath = getShortestSegmentPath(route->path, edge.transferZone1.closestCoord, edge.transferZone2.closestCoord, route->isLoop);
+            std::cout << "Subpath size: " << subPath.size() << "\n";
         }
         else
         {
             // Intermediate: entry to exit of next
             const TFTFEdge &nextEdge = path[i + 1];
             subPath = getShortestSegmentPath(route->path, edge.transferZone2.closestCoord, nextEdge.transferZone1.closestCoord, route->isLoop);
+            std::cout << "Subpath size: " << subPath.size() << "\n";
         }
 
         // Avoid duplicate join point
@@ -244,6 +247,7 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
 
         if (subPath.size() <= 1)
         {
+            std::cout << "Subpath too short, skipping...\n";
             continue;
         }
 
