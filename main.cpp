@@ -59,7 +59,7 @@ void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordin
     std::cout << "From: " << fromName << " (" << from.latitude << ", " << from.longitude << ")" << std::endl;
     std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
-    network.calculateRouteFromCoordinates(from, to, hour);
+    network.calculateRouteFromCoordinates(from, to);
     std::cout << "--------------------------------------------------" << std::endl;
 }
 
@@ -68,7 +68,7 @@ int main()
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
 
-    float transferRange = 100.5f;
+    float transferRange = 300.5f;
 
     testRoute(jeepneyNetwork, {8.508810, 124.648270}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange, 10);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange, 10);

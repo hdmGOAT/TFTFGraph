@@ -379,7 +379,7 @@
       "properties": {
         "name": "Bonbon (R1) – Cogon Public Market",
         "route_id": 8,
-        "stroke": "#93e1a7"
+        "stroke": "#a8d5dd"
       },
       "type": "Feature"
     },
@@ -752,7 +752,7 @@
       "properties": {
         "name": "Bulua (R4) – Cogon Public Market",
         "route_id": 7,
-        "stroke": "#27a73a"
+        "stroke": "#487ee7"
       },
       "type": "Feature"
     },

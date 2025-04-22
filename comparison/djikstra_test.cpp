@@ -21,3 +21,5 @@ int main()
 
     return 0;
 }
+
+// RUN: g++ -std=c++17 comparison/djikstra_test.cpp algorithms/djikstra/djikstra.h algorithms/djikstra/djikstra.cpp -o comparison/djikstra

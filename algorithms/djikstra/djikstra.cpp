@@ -105,7 +105,9 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
     std::cout << "Shortest distance: " << dist[destination] / 1000 << " km\n";
     std::cout << "Path:\n";
     for (auto &n : path)
+    {
+        std::cout << std::fixed << std::setprecision(6);
         std::cout << "[" << n.lon << ", " << n.lat << "]" << "," << std::endl;
-
+    }
     return path;
 }
