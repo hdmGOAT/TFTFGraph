@@ -295,14 +295,17 @@ std::vector<Coordinate> getShortestSegmentPath(
     const Coordinate &endCoord,
     bool isLoop)
 {
-    const float radiusMeters = 30.0f;
+    const float radiusMeters = 200.0f;
     const int minIndexSeparation = 5;
 
-    std::vector<int> startCandidates = getCandidatePathIndexes(path, startCoord, radiusMeters, minIndexSeparation);
+    std::vector<int> startCandidates = {getClosestIndex(path, startCoord)};
     std::vector<int> endCandidates = getCandidatePathIndexes(path, endCoord, radiusMeters, minIndexSeparation);
 
-    if (startCandidates.empty() || endCandidates.empty())
-        return {};
+    // Fallback: add closest index if none found
+    if (startCandidates.empty())
+        startCandidates.push_back(getClosestIndex(path, startCoord));
+    if (endCandidates.empty())
+        endCandidates.push_back(getClosestIndex(path, endCoord));
 
     std::vector<Coordinate> bestPath;
     float bestDist = std::numeric_limits<float>::infinity();
@@ -311,35 +314,52 @@ std::vector<Coordinate> getShortestSegmentPath(
     {
         for (int endIdx : endCandidates)
         {
-            std::vector<Coordinate> candidatePath;
+            std::vector<Coordinate> forwardPath;
+            std::vector<Coordinate> loopPath;
 
             if (startIdx <= endIdx)
             {
-                candidatePath.insert(candidatePath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
+                forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.begin() + endIdx + 1);
             }
             else
             {
-                // Wrap around if looping
-                if (isLoop)
+                forwardPath.insert(forwardPath.end(), path.begin() + startIdx, path.end());
+                forwardPath.insert(forwardPath.end(), path.begin(), path.begin() + endIdx + 1);
+            }
+
+            float forwardDist = 0.0f;
+            for (size_t i = 1; i < forwardPath.size(); ++i)
+                forwardDist += haversine(forwardPath[i - 1], forwardPath[i]);
+
+            float loopDist = std::numeric_limits<float>::infinity();
+            if (isLoop)
+            {
+                if (endIdx <= startIdx)
                 {
-                    candidatePath.insert(candidatePath.end(), path.begin() + startIdx, path.end());
-                    candidatePath.insert(candidatePath.end(), path.begin(), path.begin() + endIdx + 1);
+                    loopPath.insert(loopPath.end(), path.begin() + endIdx, path.begin() + startIdx + 1);
                 }
                 else
                 {
-                    continue; // invalid in non-loop
+                    loopPath.insert(loopPath.end(), path.begin() + endIdx, path.end());
+                    loopPath.insert(loopPath.end(), path.begin(), path.begin() + startIdx + 1);
                 }
+                std::reverse(loopPath.begin(), loopPath.end());
+
+                loopDist = 0.0f;
+                for (size_t i = 1; i < loopPath.size(); ++i)
+                    loopDist += haversine(loopPath[i - 1], loopPath[i]);
             }
 
-            // Compute actual distance
-            float dist = 0.0f;
-            for (size_t i = 1; i < candidatePath.size(); ++i)
-                dist += haversine(candidatePath[i - 1], candidatePath[i]);
-
-            if (dist < bestDist)
+            // Pick the better path from forward vs loop for this candidate pair
+            if (forwardDist <= loopDist && forwardDist < bestDist)
             {
-                bestDist = dist;
-                bestPath = candidatePath;
+                bestDist = forwardDist;
+                bestPath = forwardPath;
+            }
+            else if (isLoop && loopDist < forwardDist && loopDist < bestDist)
+            {
+                bestDist = loopDist;
+                bestPath = loopPath;
             }
         }
     }
