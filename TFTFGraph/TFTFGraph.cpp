@@ -783,3 +783,20 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
  
     return bestPath;
 }
+void TFTFGraph::getGraphDetails() const
+{
+    size_t routeNodeCount = routes.size();
+    size_t edgeCount = 0;
+    size_t totalCoordinates = 0;
+
+    for (const auto &[routeId, routeNode] : routes)
+    {
+        edgeCount += routeNode.edges.size();
+        totalCoordinates += routeNode.path.size();
+    }
+
+    std::cout << "Graph Details:\n";
+    std::cout << "Total Route Nodes: " << routeNodeCount << "\n";
+    std::cout << "Total Edges: " << edgeCount << "\n";
+    std::cout << "Total Coordinates: " << totalCoordinates << "\n";
+}

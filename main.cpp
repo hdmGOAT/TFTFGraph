@@ -83,11 +83,16 @@ int main()
 {
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
+
+ 
     
     float transferRange = 300.5f;
 
     jeepneyNetwork.createTransfersFromCoordinates(transferRange);
+    jeepneyNetwork.getGraphDetails();
 
+
+    
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
     testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);

@@ -7,13 +7,30 @@
 #include <cmath>
 #include <algorithm>
 #include "json.hpp"
+#include "../djikstra/djikstra.h"
 
 using json = nlohmann::json;
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
+void printGraphDetails(const std::map<Node, std::vector<std::pair<Node, double>>> &graph)
+{
+    size_t nodeCount = graph.size();
+    size_t edgeCount = 0;
+    size_t totalCoordinates = 0;
 
+    for (const auto &[node, neighbors] : graph)
+    {
+        edgeCount += neighbors.size();
+        totalCoordinates += 1; // Each node is a coordinate
+    }
+
+    std::cout << "Graph Details:\n";
+    std::cout << "Total Nodes: " << nodeCount << "\n";
+    std::cout << "Total Edges: " << edgeCount / 2 << "\n"; // Each edge counted twice
+    std::cout << "Total Coordinates: " << totalCoordinates << "\n";
+}
 bool Node::operator<(const Node &other) const
 {
     return std::tie(lat, lon) < std::tie(other.lat, other.lon);
@@ -65,7 +82,8 @@ std::vector<Node> astar_geojson(const std::string &filename, Node start, Node go
             graph[v].emplace_back(u, dist);
         }
     }
-
+    printGraphDetails(graph);
+    // A* algorithm
     std::map<Node, double> gScore, fScore;
     std::map<Node, Node> cameFrom;
     std::set<Node> visited;

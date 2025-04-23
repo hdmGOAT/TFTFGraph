@@ -12,7 +12,23 @@
 #endif
 
 using json = nlohmann::json;
+void printGraphDetails(const std::map<Node, std::vector<std::pair<Node, double>>> &graph)
+{
+    size_t nodeCount = graph.size();
+    size_t edgeCount = 0;
+    size_t totalCoordinates = 0;
 
+    for (const auto &[node, neighbors] : graph)
+    {
+        edgeCount += neighbors.size();
+        totalCoordinates += 1; // Each node is a coordinate
+    }
+
+    std::cout << "Graph Details:\n";
+    std::cout << "Total Nodes: " << nodeCount << "\n";
+    std::cout << "Total Edges: " << edgeCount / 2 << "\n"; // Each edge counted twice
+    std::cout << "Total Coordinates: " << totalCoordinates << "\n";
+}
 double haversine(const Node &a, const Node &b)
 {
     const double R = 6371e3;
@@ -53,7 +69,7 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
             graph[v].emplace_back(u, dist);
         }
     }
-
+    printGraphDetails(graph);
     // Dijkstra’s algorithm
     std::map<Node, double> dist;
     std::map<Node, Node> prev;
