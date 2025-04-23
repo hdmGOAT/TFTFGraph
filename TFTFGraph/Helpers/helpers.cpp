@@ -295,7 +295,7 @@ std::vector<Coordinate> getShortestSegmentPath(
     const Coordinate &endCoord,
     bool isLoop)
 {
-    const float radiusMeters = 200.0f;
+    const float radiusMeters = 50.0f;
     const int minIndexSeparation = 5;
 
     std::vector<int> startCandidates = {getClosestIndex(path, startCoord)};

@@ -3,6 +3,7 @@
 #include "./TFTFGraph/TFTFGraph.h"
 #include "./TFTFGraph/Helpers/helpers.h"
 #include <fstream>
+#include <chrono>
 
 #include "json.hpp"
 
@@ -53,13 +54,28 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
 
 void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters)
 {
-    network.createTransfersFromCoordinates(transferMeters);
+    using Clock = std::chrono::high_resolution_clock;
+
     std::cout << "Transfer range: " << transferMeters << " meters" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
     std::cout << "From: " << fromName << " (" << from.latitude << ", " << from.longitude << ")" << std::endl;
     std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
+
+    // Measure transfer creation time
+    auto t1 = Clock::now();
+    
+    auto t2 = Clock::now();
+    auto transferDuration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
+    std::cout << "Transfer creation time: " << transferDuration << " ms\n";
+
+    // Measure pathfinding + fare calc time
+    auto t3 = Clock::now();
     network.calculateRouteFromCoordinates(from, to);
+    auto t4 = Clock::now();
+    auto pathDuration = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
+    std::cout << "Route finding + fare calc time: " << pathDuration << " ms\n";
+
     std::cout << "--------------------------------------------------" << std::endl;
 }
 
@@ -67,13 +83,15 @@ int main()
 {
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
-
+    
     float transferRange = 300.5f;
+
+    jeepneyNetwork.createTransfersFromCoordinates(transferRange);
 
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
-    // testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
-    testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
+    testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
+    // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
 
     // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
     // // Bonbon - Westbound Bulua Terminal
