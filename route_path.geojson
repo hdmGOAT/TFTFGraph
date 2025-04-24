@@ -309,7 +309,7 @@
       "properties": {
         "name": "Bonbon (R1) – Cogon Public Market",
         "route_id": 8,
-        "stroke": "#db92c8"
+        "stroke": "#04c2d0"
       },
       "type": "Feature"
     },
@@ -532,7 +532,7 @@
       "properties": {
         "name": "NHA - Agora Terminal",
         "route_id": 3,
-        "stroke": "#1aba55"
+        "stroke": "#bbddde"
       },
       "type": "Feature"
     },

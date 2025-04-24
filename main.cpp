@@ -88,7 +88,21 @@ int main()
     
     float transferRange = 300.5f;
 
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
+
+    // Call your function
     jeepneyNetwork.createTransfersFromCoordinates(transferRange);
+
+    // End timing
+    auto end = std::chrono::high_resolution_clock::now();
+
+    // Calculate duration in milliseconds
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+
+    // Print elapsed time
+    std::cout << "createTransfersFromCoordinates executed in: "
+            << duration.count() << " ms\n";
     jeepneyNetwork.getGraphDetails();
 
 
