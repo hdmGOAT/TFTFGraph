@@ -15,7 +15,6 @@ using json = nlohmann::json;
 std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Node destination)
 {
     auto start = std::chrono::high_resolution_clock::now(); // start timing
-
     // Parse GeoJSON
     std::ifstream file(filename);
     json geojson;
@@ -42,6 +41,7 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
     }
 
     printGraphDetails(graph);
+   
 
     // Dijkstra’s algorithm
     std::map<Node, double> dist;

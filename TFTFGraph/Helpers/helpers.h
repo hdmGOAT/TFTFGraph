@@ -25,5 +25,13 @@ std::vector<Coordinate> getShortestSegmentPath(
     const Coordinate &endCoord,
     bool isLoop);
 void printGraphDetails(const std::map<Node, std::vector<std::pair<Node, double>>> &graph);
+void saveRuntimesRowToCSV(
+    const Coordinate& startCoord,
+    const Coordinate& endCoord,
+    long long tftfDuration,
+    long long dijkstraDuration,
+    long long astarDuration,
+    const std::string& filename,
+    bool writeHeader = false);
 
 #endif

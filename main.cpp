@@ -56,7 +56,6 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
 
 void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters)
 {
-    using Clock = std::chrono::high_resolution_clock;
 
     std::cout << "Transfer range: " << transferMeters << " meters" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
@@ -64,25 +63,36 @@ void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordin
     std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
 
-    // Measure pathfinding + fare calc time
-    auto t3 = Clock::now();
+
+    auto startTFTF = std::chrono::high_resolution_clock::now();
     network.calculateRouteFromCoordinates(from, to);
+    auto endTFTF = std::chrono::high_resolution_clock::now();
+    long long tftfDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTFTF - startTFTF).count();
+
+
     Node fromNode{from.latitude, from.longitude};
     Node toNode{to.latitude, to.longitude};
 
-    auto t4 = Clock::now();
-    auto pathDuration = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
     std::cout << "TFTFGRAPH" << std::endl;
     network.getGraphDetails();
-    std::cout << "Route finding + fare calc time: " << pathDuration << " ms\n";
 
     std::cout << "--------------------------------------------------" << std::endl;
 
     std::cout << "A STAR" << std::endl;
+    auto startAStar = std::chrono::high_resolution_clock::now();
     astar_geojson("routes.geojson", fromNode, toNode);
+    auto endAStar = std::chrono::high_resolution_clock::now();
+    long long aStarDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endAStar - startAStar).count();
     std::cout << "--------------------------------------------------" << std::endl;
     std::cout << "DIJKSTRA" << std::endl;
-    dijkstra_geojson("routes.geojson", fromNode, toNode);
+    auto startDijkstra = std::chrono::high_resolution_clock::now();
+    dijkstra_geojson("routes.geojson",fromNode, toNode);
+    auto endDijkstra = std::chrono::high_resolution_clock::now();
+    long long dijkstraDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endDijkstra - startDijkstra).count();
+
+    static bool firstRow = true;  
+    saveRuntimesRowToCSV(from, to, tftfDuration, dijkstraDuration, aStarDuration, "runtimes.csv", firstRow);
+    firstRow = false;
 }
 
 int main()
@@ -110,9 +120,9 @@ int main()
     std::cout << "createTransfersFromCoordinates executed in: "
             << duration.count() << " ms\n";
 
-    // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
+    testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
-    testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
+    // testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
 
     // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
 

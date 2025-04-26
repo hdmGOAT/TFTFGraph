@@ -8,6 +8,8 @@
 #include <limits>
 #include <map>
 #include <vector>
+#include <fstream>
+#include <iomanip>
 
 Coordinate interpolate(const Coordinate &start, const Coordinate &end, float t)
 {
@@ -387,4 +389,41 @@ std::vector<Coordinate> getShortestSegmentPath(
     }
 
     return bestPath;
+}
+
+void saveRuntimesRowToCSV(
+    const Coordinate& startCoord,
+    const Coordinate& endCoord,
+    long long tftfDuration,
+    long long dijkstraDuration,
+    long long astarDuration,
+    const std::string& filename,
+    bool writeHeader = false)
+{
+    std::ofstream file;
+    // Open in append mode
+    file.open(filename, std::ios::app);
+    
+    if (file.is_open())
+    {
+        if (writeHeader)
+        {
+            file << "Start Latitude,Start Longitude,End Latitude,End Longitude,TFTF (ms),Dijkstra (ms),A* (ms)\n";
+        }
+
+        file << std::fixed << std::setprecision(6)
+             << startCoord.latitude << ","
+             << startCoord.longitude << ","
+             << endCoord.latitude << ","
+             << endCoord.longitude << ","
+             << tftfDuration << ","
+             << dijkstraDuration << ","
+             << astarDuration << "\n";
+
+        file.close();
+    }
+    else
+    {
+        std::cerr << "Failed to open CSV file for writing: " << filename << "\n";
+    }
 }

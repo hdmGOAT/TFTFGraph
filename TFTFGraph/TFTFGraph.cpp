@@ -1,6 +1,6 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
-
+#include <chrono>
 #include <iostream>
 #include <vector>
 #include <string>
@@ -608,6 +608,9 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate &endCoord
     )
 {
+    auto start = std::chrono::high_resolution_clock::now();
+
+
     std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
     std::vector<int> endCandidates = getNearbyRoutes(endCoord, 300.0f);
 
@@ -724,6 +727,10 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     };
 
     bestPath.push_back(endEdge);
+
+    auto end = std::chrono::high_resolution_clock::now();
+
+    std::cout << "Route found in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms\n";
 
     // ==== PRINT INSTRUCTIONS ====
     std::cout << "\n==== Route Instructions ====\n";

@@ -15,8 +15,8 @@ using json = nlohmann::json;
 
 std::vector<Node> astar_geojson(const std::string &filename, Node start, Node goal)
 {
+    
     auto start_time = std::chrono::high_resolution_clock::now(); // start timing
-
     std::ifstream file(filename);
     json geojson;
     file >> geojson;
@@ -38,6 +38,7 @@ std::vector<Node> astar_geojson(const std::string &filename, Node start, Node go
         }
     }
     printGraphDetails(graph);
+
 
     // A* algorithm
     std::map<Node, double> gScore, fScore;
