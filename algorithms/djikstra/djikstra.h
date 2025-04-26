@@ -3,27 +3,10 @@
 
 #include <string>
 #include <vector>
-#include "json.hpp"
+#include "../json.hpp"
+#include "../node.h"
 
-struct Node
-{
-    double lat, lon;
 
-    bool operator<(const Node &other) const
-    {
-        return std::tie(lat, lon) < std::tie(other.lat, other.lon);
-    }
-
-    bool operator==(const Node &other) const
-    {
-        return lat == other.lat && lon == other.lon;
-    }
-
-    bool operator!=(const Node &other) const
-    {
-        return !(*this == other);
-    }
-};
 
 double haversine(const Node &a, const Node &b);
 

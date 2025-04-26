@@ -2,6 +2,8 @@
 #include <vector>
 #include "./TFTFGraph/TFTFGraph.h"
 #include "./TFTFGraph/Helpers/helpers.h"
+#include "./algorithms/astar/astar.h"
+#include "./algorithms/djikstra/djikstra.h"
 #include <fstream>
 #include <chrono>
 
@@ -62,21 +64,25 @@ void testRoute(TFTFGraph network, Coordinate from, std::string fromName, Coordin
     std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
     std::cout << "--------------------------------------------------" << std::endl;
 
-    // Measure transfer creation time
-    auto t1 = Clock::now();
-    
-    auto t2 = Clock::now();
-    auto transferDuration = std::chrono::duration_cast<std::chrono::milliseconds>(t2 - t1).count();
-    std::cout << "Transfer creation time: " << transferDuration << " ms\n";
-
     // Measure pathfinding + fare calc time
     auto t3 = Clock::now();
     network.calculateRouteFromCoordinates(from, to);
+    Node fromNode{from.latitude, from.longitude};
+    Node toNode{to.latitude, to.longitude};
+
     auto t4 = Clock::now();
     auto pathDuration = std::chrono::duration_cast<std::chrono::milliseconds>(t4 - t3).count();
+    std::cout << "TFTFGRAPH" << std::endl;
+    network.getGraphDetails();
     std::cout << "Route finding + fare calc time: " << pathDuration << " ms\n";
 
     std::cout << "--------------------------------------------------" << std::endl;
+
+    std::cout << "A STAR" << std::endl;
+    astar_geojson("routes.geojson", fromNode, toNode);
+    std::cout << "--------------------------------------------------" << std::endl;
+    std::cout << "DIJKSTRA" << std::endl;
+    dijkstra_geojson("routes.geojson", fromNode, toNode);
 }
 
 int main()
@@ -103,13 +109,11 @@ int main()
     // Print elapsed time
     std::cout << "createTransfersFromCoordinates executed in: "
             << duration.count() << " ms\n";
-    jeepneyNetwork.getGraphDetails();
 
-
-    
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.511330, 124.624290}, "Westbound Bulua Terminal", transferRange);
     // testRoute(jeepneyNetwork, {8.50881, 124.64827}, "Bonbon", {8.482906, 124.646094}, "Velez Mogchs", transferRange);
     testRoute(jeepneyNetwork, {8.504775, 124.642954}, "Kauswagan City Engineer", {8.484763, 124.655977}, "USTP", transferRange);
+
     // testRoute(jeepneyNetwork, {8.487358, 124.629950}, "Patag Camp Evangelista", {8.484763, 124.655977}, "USTP", transferRange);
 
     // jeepneyNetwork.createTransfersFromCoordinates(300.0f);
@@ -134,3 +138,5 @@ int main()
 // RUN THIS CODE
 
 // g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp -o main
+
+// g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp algorithms/astar/astar.cpp algorithms/djikstra/djikstra.cpp algorithms/node.cpp -o main

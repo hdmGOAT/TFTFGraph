@@ -1,34 +1,21 @@
 #include "djikstra.h"
 #include <fstream>
 #include <iostream>
+#include <iomanip>
 #include <cmath>
 #include <queue>
 #include <map>
 #include <set>
 #include <algorithm>
-
-#ifndef M_PI
-#define M_PI 3.14159265358979323846
-#endif
+#include <chrono>  // <-- added
+#include "../../TFTFGraph/Helpers/helpers.h"
 
 using json = nlohmann::json;
 
-double haversine(const Node &a, const Node &b)
-{
-    const double R = 6371e3;
-    double lat1 = a.lat * M_PI / 180;
-    double lat2 = b.lat * M_PI / 180;
-    double dlat = (b.lat - a.lat) * M_PI / 180;
-    double dlon = (b.lon - a.lon) * M_PI / 180;
-
-    double h = sin(dlat / 2) * sin(dlat / 2) +
-               cos(lat1) * cos(lat2) * sin(dlon / 2) * sin(dlon / 2);
-
-    return R * 2 * atan2(sqrt(h), sqrt(1 - h));
-}
-
 std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Node destination)
 {
+    auto start = std::chrono::high_resolution_clock::now(); // start timing
+
     // Parse GeoJSON
     std::ifstream file(filename);
     json geojson;
@@ -47,12 +34,14 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
         {
             Node u{coords[i][1], coords[i][0]};
             Node v{coords[i + 1][1], coords[i + 1][0]};
-            double dist = haversine(u, v);
+            double dist = haversineNode(u, v);
 
             graph[u].emplace_back(v, dist);
             graph[v].emplace_back(u, dist);
         }
     }
+
+    printGraphDetails(graph);
 
     // Dijkstra’s algorithm
     std::map<Node, double> dist;
@@ -94,6 +83,11 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
     if (!dist.count(destination))
     {
         std::cout << "No path found.\n";
+
+        auto end = std::chrono::high_resolution_clock::now(); // end timing
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << "Dijkstra completed in: " << duration << " ms\n";
+
         return path;
     }
 
@@ -109,5 +103,10 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
         std::cout << std::fixed << std::setprecision(6);
         std::cout << "[" << n.lon << ", " << n.lat << "]" << "," << std::endl;
     }
+
+    auto end = std::chrono::high_resolution_clock::now(); // end timing
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Dijkstra completed in: " << duration << " ms\n";
+
     return path;
 }

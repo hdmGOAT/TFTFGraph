@@ -1,6 +1,9 @@
 #ifndef HELPERS_H
 #define HELPERS_H
 #include "../TFTFGraph.h"
+#include "../../algorithms/node.h"
+#include <map>
+#include <vector>
 
 const float BASE_FARE = 10.0f;
 const float FARE_PER_KM = 2.0f;
@@ -21,6 +24,6 @@ std::vector<Coordinate> getShortestSegmentPath(
     const Coordinate &startCoord,
     const Coordinate &endCoord,
     bool isLoop);
-
+void printGraphDetails(const std::map<Node, std::vector<std::pair<Node, double>>> &graph);
 
 #endif

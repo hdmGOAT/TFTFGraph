@@ -4,6 +4,10 @@
 #include "helpers.h"
 #include "../TFTFGraph.h"
 #include <algorithm>
+#include "../../algorithms/node.h"
+#include <limits>
+#include <map>
+#include <vector>
 
 Coordinate interpolate(const Coordinate &start, const Coordinate &end, float t)
 {
@@ -287,6 +291,24 @@ std::vector<int> getCandidatePathIndexes(
     }
 
     return candidates;
+}
+
+void printGraphDetails(const std::map<Node, std::vector<std::pair<Node, double>>> &graph)
+{
+    size_t nodeCount = graph.size();
+    size_t edgeCount = 0;
+    size_t totalCoordinates = 0;
+
+    for (const auto &[node, neighbors] : graph)
+    {
+        edgeCount += neighbors.size();
+        totalCoordinates += 1; // Each node is a coordinate
+    }
+
+    std::cout << "Graph Details:\n";
+    std::cout << "Total Nodes: " << nodeCount << "\n";
+    std::cout << "Total Edges: " << edgeCount / 2 << "\n"; // Each edge counted twice
+    std::cout << "Total Coordinates: " << totalCoordinates << "\n";
 }
 
 std::vector<Coordinate> getShortestSegmentPath(

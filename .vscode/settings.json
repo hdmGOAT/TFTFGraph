@@ -85,6 +85,7 @@
     "text_encoding": "cpp",
     "valarray": "cpp",
     "variant": "cpp",
-    "set": "cpp"
+    "set": "cpp",
+    "chrono": "cpp"
   }
 }
