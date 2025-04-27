@@ -398,7 +398,7 @@ void saveRuntimesRowToCSV(
     long long dijkstraDuration,
     long long astarDuration,
     const std::string& filename,
-    bool writeHeader = false)
+    bool writeHeader)
 {
     std::ofstream file;
     // Open in append mode

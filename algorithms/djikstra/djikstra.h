@@ -10,6 +10,6 @@
 
 double haversine(const Node &a, const Node &b);
 
-std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Node destination);
+std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Node destination, std::map<Node, std::vector<std::pair<Node, double>>> graph);
 
 #endif

@@ -3,8 +3,11 @@
 
 #include <vector>
 #include <cmath>
-
+#include "json.hpp"
 #define M_PI 3.14159265358979323846
+
+
+using json = nlohmann::json;
 
 struct Node
 {
@@ -27,4 +30,6 @@ struct Node
 };
 
 double haversineNode(const Node &a, const Node &b);
+void geojsonToNodeGraph(std::map<Node, std::vector<std::pair<Node, double>>> &graph, json file);
+
 #endif
