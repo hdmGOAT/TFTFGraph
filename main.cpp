@@ -116,18 +116,10 @@ void testRoute(TFTFGraph network, std::map<Node, std::vector<std::pair<Node, dou
     Node fromNode{from.latitude, from.longitude};
     Node toNode{to.latitude, to.longitude};
 
-    // std::cout << "TFTFGRAPH" << std::endl;
-    // network.getGraphDetails();
-
-    // std::cout << "--------------------------------------------------" << std::endl;
-
-    // std::cout << "A STAR" << std::endl;
     auto startAStar = std::chrono::high_resolution_clock::now();
     astar_geojson("routes.geojson", fromNode, toNode, nodeGraph);
     auto endAStar = std::chrono::high_resolution_clock::now();
     long long aStarDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endAStar - startAStar).count();
-    // std::cout << "--------------------------------------------------" << std::endl;
-    // std::cout << "DIJKSTRA" << std::endl;
     auto startDijkstra = std::chrono::high_resolution_clock::now();
     dijkstra_geojson("routes.geojson",fromNode, toNode, nodeGraph);
     auto endDijkstra = std::chrono::high_resolution_clock::now();
