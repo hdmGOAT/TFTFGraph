@@ -507,70 +507,18 @@ void writeRoutePathInstructionsToGeoJSON(
     const Coordinate &startCoord,
     const Coordinate &endCoord)
 {
-    json featureCollection;
-    featureCollection["type"] = "FeatureCollection";
-    featureCollection["features"] = json::array();
+    json geojson = generateRoutePathGeoJSON(instructions, startCoord, endCoord);
 
-    for (const auto &instr : instructions)
-    {
-        if (instr.path.empty()) continue;
-
-        std::string color = generateRandomColor();
-
-        // Route LineString
-        json lineFeature;
-        lineFeature["type"] = "Feature";
-        lineFeature["geometry"]["type"] = "LineString";
-
-        for (const auto &coord : instr.path)
-        {
-            lineFeature["geometry"]["coordinates"].push_back({coord.longitude, coord.latitude, 0});
-        }
-
-        lineFeature["properties"]["name"] = instr.routeName;
-        lineFeature["properties"]["route_id"] = instr.routeId;
-        lineFeature["properties"]["stroke"] = color;
-
-        featureCollection["features"].push_back(lineFeature);
-    }
-
-    // Start Point Feature
-    json startFeature;
-    startFeature["type"] = "Feature";
-    startFeature["geometry"]["type"] = "Point";
-    startFeature["geometry"]["coordinates"] = {startCoord.longitude, startCoord.latitude, 0};
-    startFeature["properties"]["marker-symbol"] = "circle";
-    startFeature["properties"]["marker-color"] = "#00FF00"; // green
-    startFeature["properties"]["marker-size"] = "medium";
-    startFeature["properties"]["point_type"] = "start";
-
-    featureCollection["features"].push_back(startFeature);
-
-    // End Point Feature
-    json endFeature;
-    endFeature["type"] = "Feature";
-    endFeature["geometry"]["type"] = "Point";
-    endFeature["geometry"]["coordinates"] = {endCoord.longitude, endCoord.latitude, 0};
-    endFeature["properties"]["marker-symbol"] = "circle";
-    endFeature["properties"]["marker-color"] = "#FF0000"; // red
-    endFeature["properties"]["marker-size"] = "medium";
-    endFeature["properties"]["point_type"] = "end";
-
-    featureCollection["features"].push_back(endFeature);
-
-    // Write to file
     std::ofstream file(filename);
-    if (file.is_open())
-    {
-        file << std::setw(2) << featureCollection << std::endl;
+    if (file.is_open()) {
+        file << std::setw(2) << geojson << std::endl;
         file.close();
         std::cout << "GeoJSON written to: " << filename << "\n";
-    }
-    else
-    {
+    } else {
         std::cerr << "Failed to open file for writing: " << filename << "\n";
     }
 }
+
 
 double TFTFGraph::calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions)
 {
@@ -790,6 +738,12 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
  
     return bestPath;
 }
+
+std::unordered_map<int, RouteNode>& TFTFGraph::getRoutes() {
+    return routes;
+}
+
+
 void TFTFGraph::getGraphDetails() const
 {
     size_t routeNodeCount = routes.size();
@@ -806,4 +760,166 @@ void TFTFGraph::getGraphDetails() const
     std::cout << "Total Route Nodes: " << routeNodeCount << "\n";
     std::cout << "Total Edges: " << edgeCount << "\n";
     std::cout << "Total Coordinates: " << totalCoordinates << "\n";
+}
+
+json TFTFGraph::toJson() const {
+    json j;
+    j["routes"] = json::array();
+
+    for (const auto& [routeId, route] : routes) {
+        json routeJson;
+        routeJson["id"] = route.routeId;
+        routeJson["name"] = route.routeName;
+        routeJson["is_loop"] = route.isLoop;
+
+        // Serialize coordinates
+        routeJson["path"] = json::array();
+        for (const auto& coord : route.path) {
+            routeJson["path"].push_back({{"lat", coord.latitude}, {"lon", coord.longitude}});
+        }
+
+        // Serialize edges
+        routeJson["edges"] = json::array();
+        for (const auto& edge : route.edges) {
+            json edgeJson;
+            edgeJson["transfer_cost"] = edge.transferCost;
+
+            auto serializeZone = [](const TransferZone& z) -> json {
+                return {
+                    {"route_id", z.routeId},
+                    {"start", {{"lat", z.start.latitude}, {"lon", z.start.longitude}}},
+                    {"end", {{"lat", z.end.latitude}, {"lon", z.end.longitude}}},
+                    {"closest", {{"lat", z.closestCoord.latitude}, {"lon", z.closestCoord.longitude}}}
+                };
+            };
+
+            edgeJson["zone1"] = serializeZone(edge.transferZone1);
+            edgeJson["zone2"] = serializeZone(edge.transferZone2);
+
+            routeJson["edges"].push_back(edgeJson);
+        }
+
+        j["routes"].push_back(routeJson);
+    }
+
+    return j;
+}
+
+void saveGraphToDisk(const TFTFGraph& graph, const std::string& filename) {
+    std::ofstream outFile(filename);
+    if (!outFile.is_open()) {
+        std::cerr << "Failed to open file for writing: " << filename << "\n";
+        return;
+    }
+
+    outFile << std::setw(2) << graph.toJson() << std::endl;
+    outFile.close();
+    std::cout << "Graph saved to " << filename << "\n";
+}
+
+TFTFGraph loadGraphFromDisk(const std::string& filename) {
+    TFTFGraph graph;
+    std::ifstream inFile(filename);
+    if (!inFile.is_open()) {
+        std::cerr << "Failed to open file: " << filename << "\n";
+        return graph;
+    }
+
+    json j;
+    inFile >> j;
+    inFile.close();
+
+    for (const auto& routeJson : j["routes"]) {
+        int routeId = routeJson["id"];
+        std::string routeName = routeJson["name"];
+        bool isLoop = routeJson["is_loop"];
+
+        std::vector<Coordinate> path;
+        for (const auto& coordJson : routeJson["path"]) {
+            path.emplace_back(Coordinate{
+                coordJson["lat"].get<double>(),
+                coordJson["lon"].get<double>()
+            });
+        }
+
+        graph.addRoute(routeId, routeName);
+        graph.setRoutePath(routeId, path);
+
+        // Use getRoutes() to access and update the route
+        auto& routesMap = graph.getRoutes();
+        routesMap.at(routeId).isLoop = isLoop;
+
+        // Deserialize edges
+        for (const auto& edgeJson : routeJson["edges"]) {
+            TFTFEdge edge;
+            edge.transferCost = edgeJson["transfer_cost"];
+
+            auto parseZone = [](const json& z) -> TransferZone {
+                return {
+                    .routeId = z["route_id"],
+                    .start = {z["start"]["lat"], z["start"]["lon"]},
+                    .end = {z["end"]["lat"], z["end"]["lon"]},
+                    .closestCoord = {z["closest"]["lat"], z["closest"]["lon"]}
+                };
+            };
+
+            edge.transferZone1 = parseZone(edgeJson["zone1"]);
+            edge.transferZone2 = parseZone(edgeJson["zone2"]);
+
+            routesMap.at(routeId).edges.push_back(edge);
+        }
+    }
+
+    std::cout << "Graph loaded from " << filename << "\n";
+    return graph;
+}
+json generateRoutePathGeoJSON(
+    const std::vector<RoutePathInstruction> &instructions,
+    const Coordinate &startCoord,
+    const Coordinate &endCoord)
+{
+    json featureCollection;
+    featureCollection["type"] = "FeatureCollection";
+    featureCollection["features"] = json::array();
+
+    for (const auto &instr : instructions) {
+        if (instr.path.empty()) continue;
+
+        json lineFeature;
+        lineFeature["type"] = "Feature";
+        lineFeature["geometry"]["type"] = "LineString";
+
+        for (const auto &coord : instr.path) {
+            lineFeature["geometry"]["coordinates"].push_back({coord.longitude, coord.latitude});
+        }
+
+        lineFeature["properties"] = {
+            {"route_name", instr.routeName},
+            {"route_id", instr.routeId}
+        };
+
+        featureCollection["features"].push_back(lineFeature);
+    }
+
+    // Start point
+    featureCollection["features"].push_back({
+        {"type", "Feature"},
+        {"geometry", {
+            {"type", "Point"},
+            {"coordinates", {startCoord.longitude, startCoord.latitude}}
+        }},
+        {"properties", {{"marker", "start"}}}
+    });
+
+    // End point
+    featureCollection["features"].push_back({
+        {"type", "Feature"},
+        {"geometry", {
+            {"type", "Point"},
+            {"coordinates", {endCoord.longitude, endCoord.latitude}}
+        }},
+        {"properties", {{"marker", "end"}}}
+    });
+
+    return featureCollection;
 }

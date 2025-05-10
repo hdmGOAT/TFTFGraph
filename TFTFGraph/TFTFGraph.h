@@ -5,6 +5,10 @@
 #include <vector>
 #include <unordered_map>
 #include <limits>
+#include "../json.hpp"
+
+using json = nlohmann::json;
+
 
 struct PairHash
 {
@@ -61,7 +65,9 @@ public:
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
     double calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord);
+    std::unordered_map<int, RouteNode> &getRoutes();
     void getGraphDetails() const;
+    json toJson() const;
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);
     void addEdge(int routeId1, int routeId2, TransferZone route1, TransferZone route2, float transferCost);
     std::vector<const RouteNode *> extractTraversedRouteNodes(const std::vector<TFTFEdge> &path) const;
@@ -70,5 +76,10 @@ public:
 private:
     std::unordered_map<int, RouteNode> routes;
 };
-
+TFTFGraph loadGraphFromDisk(const std::string& filename);
+void saveGraphToDisk(const TFTFGraph& graph, const std::string& filename);
+json generateRoutePathGeoJSON(
+    const std::vector<RoutePathInstruction> &instructions,
+    const Coordinate &startCoord,
+    const Coordinate &endCoord);
 #endif
