@@ -678,64 +678,6 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
 
     auto end = std::chrono::high_resolution_clock::now();
 
-    // std::cout << "Route found in " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " ms\n";
-
-    // // ==== PRINT INSTRUCTIONS ====
-    // std::cout << "\n==== Route Instructions ====\n";
-    // for (size_t i = 0; i < bestPath.size(); ++i)
-    // {
-    //     const TFTFEdge &edge = bestPath[i];
-
-    //     std::cout << std::fixed << std::setprecision(6);
-
-    //     if (i == 0)
-    //     {
-    //         std::cout << "Start at coordinates: ("
-    //                   << edge.transferZone1.closestCoord.latitude << ", "
-    //                   << edge.transferZone1.closestCoord.longitude << ")\n";
-    //     }
-
-    //     if (edge.transferZone2.routeId != -1)
-    //     {
-    //         std::cout << "Take route: " << routes[edge.transferZone2.routeId].routeName << "\n";
-    //         std::cout << "  Mount at: ("
-    //                   << edge.transferZone1.closestCoord.latitude << ", "
-    //                   << edge.transferZone1.closestCoord.longitude << ")\n";
-
-    //         // Dismount is at the next edge's mount, or the final point
-    //         if (i + 1 < bestPath.size())
-    //         {
-    //             const TFTFEdge &nextEdge = bestPath[i + 1];
-    //             std::cout << "  Dismount at: ("
-    //                       << nextEdge.transferZone2.closestCoord.latitude << ", "
-    //                       << nextEdge.transferZone1.closestCoord.longitude << ")\n";
-    //         }
-    //         else
-    //         {
-    //             std::cout << "  Dismount: (unknown – no next segment)\n";
-    //         }
-    //     }
-    //     else
-    //     {
-    //         std::cout << "Walk to final destination at: ("
-    //                   << edge.transferZone2.closestCoord.latitude << ", "
-    //                   << edge.transferZone2.closestCoord.longitude << ")\n";
-    //     }
-    // }
-
-
-    std::vector<RoutePathInstruction> routeInstructions = constructRoutePathInstructions(bestPath);
-    double fare = calculateFareFromInstructions(routeInstructions);
-    // writeRoutePathInstructionsToGeoJSON(routeInstructions, "route_path.geojson", startCoord, endCoord);
-
-    // std::cout << "=============================\n";
-    double roundedFare = std::ceil(fare);
-
-    // std::cout << "Total fare: " << std::fixed << std::setprecision(2)
-    //       << roundedFare << " pesos\n";
-    // std::cout << "=============================\n";
-
- 
     return bestPath;
 }
 
