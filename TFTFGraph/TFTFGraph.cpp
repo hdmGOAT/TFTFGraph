@@ -362,7 +362,7 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDi
 
     return nearby;
 }
-std::vector<TFTFEdge> TFTFGraph::findMinTransferPath(
+std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     int startRouteId,
     int endRouteId,
     int projectedStartIdx)
@@ -419,7 +419,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransferPath(
             // Track minimal transfers
             minTransfers[nextRouteId] = curr.transfers + 1;
 
-            // Create new path and accumulate transfercosts
+            // Create new path and accumulate fare
             std::vector<TFTFEdge> newPath = curr.path;
             newPath.push_back(edge);
             float newFare = curr.fareSoFar + edge.transferCost;
@@ -435,27 +435,27 @@ std::vector<TFTFEdge> TFTFGraph::findMinTransferPath(
         return {};
     }
 
-    // FIND MOST CONVENIENT PATH OF LEAST transfer cost
     std::vector<TFTFEdge> bestPath = candidatePaths[0];
-    float bestTransferCost = 0.0f;
+    float bestFare = 0.0f;
     for (const TFTFEdge &e : bestPath)
-        bestTransferCost += e.transferCost;
+        bestFare += e.transferCost;
 
     for (const auto &path : candidatePaths)
     {
-        float totalTransferCost = 0.0f;
+        float totalFare = 0.0f;
         for (const TFTFEdge &e : path)
-            totalTransferCost += e.transferCost;
+            totalFare += e.transferCost;
 
-        if (totalTransferCost < bestTransferCost)
+        if (totalFare < bestFare)
         {
-            bestTransferCost = totalTransferCost;
+            bestFare = totalFare;
             bestPath = path;
         }
     }
 
     return bestPath;
 }
+
 
 void printRoutePathInstructions(const std::vector<RoutePathInstruction> &instructions)
 {
@@ -604,7 +604,7 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
             else
             {
                 int projStart = getClosestIndex(routes.at(startId).path, startCoord);
-                path = findMinTransferPath(startId, endId, projStart);
+                path = findMinFarePath(startId, endId, projStart);
                 if (path.empty()) continue;
 
                 fare = calculateTotalFare(path, startCoord, endCoord);

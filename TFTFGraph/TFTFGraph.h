@@ -63,7 +63,6 @@ public:
     std::vector<RoutePathInstruction> constructRoutePathInstructions(const std::vector<TFTFEdge> &path) const;
     void createTransfersFromCoordinates(float transferRangeMeters);
     std::vector<int> getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters);
-    std::vector<TFTFEdge> findMinTransferPath(int startRouteId, int endRouteId, int projectedStartIdx);
     double calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions);
     std::vector<TFTFEdge> calculateRouteFromCoordinates(const Coordinate &startCoord, const Coordinate &endCoord);
     std::unordered_map<int, RouteNode> &getRoutes();
@@ -72,6 +71,8 @@ public:
     double calculateTotalFare(const std::vector<TFTFEdge> &path, const Coordinate &startCoord, const Coordinate &endCoord);
     void addEdge(int routeId1, int routeId2, TransferZone route1, TransferZone route2, float transferCost);
     std::vector<const RouteNode *> extractTraversedRouteNodes(const std::vector<TFTFEdge> &path) const;
+    std::vector<TFTFEdge> findMinFarePath(int startRouteId, int endRouteId,int projectedStartIdx);
+
 private:
     std::unordered_map<int, RouteNode> routes;
 };
