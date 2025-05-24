@@ -342,26 +342,40 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
 
 std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters)
 {
-    std::vector<int> nearby;
+    // Map to store minimum distance to each route
+    std::map<int, float> routeMinDistances;
 
-    for (const auto &[routeId, route] : routes)
-    {
+    // Find minimum distance to each route
+    for (const auto &[routeId, route] : routes) {
         auto densePath = densifyPath(route.path, 25.0f);
-        for (const auto &point : densePath)
-        {
-
-            // Check if the point is within the specified distance from the coordinate
-            if (haversine(coord, point) <= maxDistanceMeters)
-            {
-
-                nearby.push_back(routeId);
-                break; // only need one point close enough
+        float minDist = std::numeric_limits<float>::infinity();
+        
+        for (const auto &point : densePath) {
+            float dist = haversine(coord, point);
+            if (dist <= maxDistanceMeters && dist < minDist) {
+                minDist = dist;
+                routeMinDistances[routeId] = dist;
             }
         }
     }
 
+    // Sort routes by distance
+    std::vector<std::pair<int, float>> sortedRoutes;
+    for (const auto &[routeId, dist] : routeMinDistances) {
+        sortedRoutes.push_back({routeId, dist});
+    }
+    std::sort(sortedRoutes.begin(), sortedRoutes.end(),
+              [](const auto &a, const auto &b) { return a.second < b.second; });
+
+    // Take only the 3 closest routes
+    std::vector<int> nearby;
+    for (size_t i = 0; i < std::min(size_t(3), sortedRoutes.size()); ++i) {
+        nearby.push_back(sortedRoutes[i].first);
+    }
+
     return nearby;
 }
+
 std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     int startRouteId,
     int endRouteId,
@@ -437,35 +451,24 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
 
     std::vector<TFTFEdge> bestPath = candidatePaths[0];
     float bestFare = 0.0f;
-    for (const TFTFEdge &e : bestPath)
-        bestFare += e.transferCost;
+    // for (const TFTFEdge &e : bestPath)
+    //     bestFare += e.transferCost;
 
-    for (const auto &path : candidatePaths)
-    {
-        float totalFare = 0.0f;
-        for (const TFTFEdge &e : path)
-            totalFare += e.transferCost;
+    // for (const auto &path : candidatePaths)
+    // {
+    //     float totalFare = 0.0f;
+    //     for (const TFTFEdge &e : path)
+    //         totalFare += e.transferCost;
 
-        if (totalFare < bestFare)
-        {
-            bestFare = totalFare;
-            bestPath = path;
-        }
-    }
+    //     if (totalFare < bestFare)
+    //     {
+    //         bestFare = totalFare;
+    //         bestPath = path;
+    //     }
+    // }
 
     return bestPath;
 }
-
-
-struct PathState {
-    int routeId;
-    int index;
-    float totalDistance;
-    int transfers;
-    std::vector<TFTFEdge> path;
-};
-
-
 
 void printRoutePathInstructions(const std::vector<RoutePathInstruction> &instructions)
 {
@@ -865,3 +868,4 @@ json generateRoutePathGeoJSON(
 
     return featureCollection;
 }
+

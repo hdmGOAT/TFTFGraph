@@ -25,22 +25,48 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
     };
     std::priority_queue<std::pair<double, Node>, std::vector<std::pair<double, Node>>, decltype(cmp)> pq(cmp);
 
-    dist[origin] = 0;
-    pq.emplace(0, origin);
+    // Initialize with transfer points near origin
+    for (const auto& [node, edges] : graph) {
+        if (node.isTransferPoint) continue; // Skip other transfer points
+        
+        double distToStart = haversineNode(node, origin);
+        if (distToStart <= 300.5) { // Same transfer range as TFTFGraph
+            dist[node] = distToStart;
+            prev[node] = origin;
+            pq.emplace(distToStart, node);
+        }
+    }
 
     while (!pq.empty())
     {
         auto [d, u] = pq.top();
         pq.pop();
+
         if (visited.count(u))
             continue;
         visited.insert(u);
 
-        if (u == destination)
-            break;
+        // Check if we're close enough to the destination
+        if (haversineNode(u, destination) <= 300.5) {
+            // Found a path to destination
+            std::vector<Node> path;
+            for (Node at = u; at != origin; at = prev[at])
+                path.push_back(at);
+            path.push_back(origin);
+            std::reverse(path.begin(), path.end());
+            path.push_back(destination);
+            return path;
+        }
 
         for (auto &[v, w] : graph[u])
         {
+            // Skip invalid transfers
+            if (u.routeId != -1 && v.routeId != -1 && 
+                u.routeId != v.routeId && 
+                !v.isTransferPoint) {
+                continue;
+            }
+
             if (!dist.count(v) || dist[v] > d + w)
             {
                 dist[v] = d + w;
@@ -50,34 +76,5 @@ std::vector<Node> dijkstra_geojson(const std::string &filename, Node origin, Nod
         }
     }
 
-    std::vector<Node> path;
-    if (!dist.count(destination))
-    {
-        std::cout << "No path found.\n";
-
-        auto end = std::chrono::high_resolution_clock::now(); // end timing
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-        std::cout << "Dijkstra completed in: " << duration << " ms\n";
-
-        return path;
-    }
-
-    for (Node at = destination; at != origin; at = prev[at])
-        path.push_back(at);
-    path.push_back(origin);
-    std::reverse(path.begin(), path.end());
-
-    // std::cout << "Shortest distance: " << dist[destination] / 1000 << " km\n";
-    // std::cout << "Path:\n";
-    // for (auto &n : path)
-    // {
-    //     std::cout << std::fixed << std::setprecision(6);
-    //     std::cout << "[" << n.lon << ", " << n.lat << "]" << "," << std::endl;
-    // }
-
-    auto end = std::chrono::high_resolution_clock::now(); // end timing
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    // std::cout << "Dijkstra completed in: " << duration << " ms\n";
-
-    return path;
+    return std::vector<Node>();
 }

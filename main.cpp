@@ -7,10 +7,11 @@
 #include <fstream>
 #include <chrono>
 #include <random>
-
 #include "json.hpp"
+#include "benchmark_utils.h"
 
 using json = nlohmann::json;
+
 void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph)
 {
     std::ifstream file(filepath);
@@ -82,107 +83,58 @@ std::vector<Coordinate> extractAllCoordinates(const std::string &filepath) {
     return allCoordinates;
 }
 
-void printProgressBar(int current, int total) {
-    int barWidth = 50;
-    float progress = static_cast<float>(current) / total;
-    int pos = static_cast<int>(barWidth * progress);
-
-    std::cout << "[";
-    for (int i = 0; i < barWidth; ++i) {
-        if (i < pos) std::cout << "=";
-        else if (i == pos) std::cout << ">";
-        else std::cout << " ";
-    }
-    std::cout << "] " << int(progress * 100.0) << " %\r";
-    std::cout.flush();
-}
-
-void testRoute(TFTFGraph network, std::map<Node, std::vector<std::pair<Node, double>>> nodeGraph,Coordinate from, std::string fromName, Coordinate to, std::string toName, float transferMeters)
-{
-
-    // std::cout << "Transfer range: " << transferMeters << " meters" << std::endl;
-    // std::cout << "--------------------------------------------------" << std::endl;
-    // std::cout << "From: " << fromName << " (" << from.latitude << ", " << from.longitude << ")" << std::endl;
-    // std::cout << "To: " << toName << " (" << to.latitude << ", " << to.longitude << ")" << std::endl;
-    // std::cout << "--------------------------------------------------" << std::endl;
-
-
-    auto startTFTF = std::chrono::high_resolution_clock::now();
-    network.calculateRouteFromCoordinates(from, to);
-    auto endTFTF = std::chrono::high_resolution_clock::now();
-    long long tftfDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endTFTF - startTFTF).count();
-
-
-    Node fromNode{from.latitude, from.longitude};
-    Node toNode{to.latitude, to.longitude};
-
-    auto startAStar = std::chrono::high_resolution_clock::now();
-    astar_geojson("routes.geojson", fromNode, toNode, nodeGraph);
-    auto endAStar = std::chrono::high_resolution_clock::now();
-    long long aStarDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endAStar - startAStar).count();
-    auto startDijkstra = std::chrono::high_resolution_clock::now();
-    dijkstra_geojson("routes.geojson",fromNode, toNode, nodeGraph);
-    auto endDijkstra = std::chrono::high_resolution_clock::now();
-    long long dijkstraDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endDijkstra - startDijkstra).count();
-
-    static bool firstRow = true;  
-    saveRuntimesRowToCSV(from, to, tftfDuration, dijkstraDuration, aStarDuration, "runtimes.csv", firstRow);
-    firstRow = false;
-}
-
 int main()
 {
+    // Start timing TFTF graph construction
+    std::cout << "Constructing TFTF graph..." << std::endl;
+    auto tftf_start = std::chrono::high_resolution_clock::now();
+
     TFTFGraph jeepneyNetwork;
     loadRoutesFromGeoJSON("routes.geojson", jeepneyNetwork);
 
     float transferRange = 300.5f;
-
-    // Create transfers
     jeepneyNetwork.createTransfersFromCoordinates(transferRange);
 
-        // Parse GeoJSON
+    auto tftf_end = std::chrono::high_resolution_clock::now();
+    auto tftf_duration = std::chrono::duration_cast<std::chrono::milliseconds>(tftf_end - tftf_start);
+    std::cout << "TFTF graph construction completed in " << tftf_duration.count() << " ms" << std::endl;
+
+    // Start timing node graph construction
+    std::cout << "\nConstructing node graph..." << std::endl;
+    auto node_start = std::chrono::high_resolution_clock::now();
+
+    // Parse GeoJSON for node graph
     std::ifstream file("routes.geojson");
     json geojson;
     file >> geojson;
     std::map<Node, std::vector<std::pair<Node, double>>> nodeGraph;
     geojsonToNodeGraph(nodeGraph, geojson);
 
+    auto node_end = std::chrono::high_resolution_clock::now();
+    auto node_duration = std::chrono::duration_cast<std::chrono::milliseconds>(node_end - node_start);
+    std::cout << "Node graph construction completed in " << node_duration.count() << " ms" << std::endl;
 
-    printGraphDetails(nodeGraph); // Print graph details
-    jeepneyNetwork.getGraphDetails(); // Print TFTFGraph details
+    // Print initial graph details
+    std::cout << "\nGraph Details:" << std::endl;
+    std::cout << "-------------" << std::endl;
+    printGraphDetails(nodeGraph);
+    jeepneyNetwork.getGraphDetails();
 
-    // Extract all coordinates
+    // Extract all coordinates for testing
     std::vector<Coordinate> allCoordinates = extractAllCoordinates("routes.geojson");
 
-    // Random generator
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<> distr(0, allCoordinates.size() - 1);
+    const int testsPerCategory = 1500;
+    
+    // Run tests for each category
+    runTestCategory(jeepneyNetwork, nodeGraph, SAME_ROUTE, "same_route.csv", 
+                   testsPerCategory, allCoordinates);
+    
+    runTestCategory(jeepneyNetwork, nodeGraph, DIFFERENT_ROUTES, "different_routes.csv", 
+                   testsPerCategory, allCoordinates);
+    
 
-    // Do 500 random tests
-    int totalTests = 5000;
-
-    for (int i = 0; i < totalTests; ++i) {
-        Coordinate from = allCoordinates[distr(gen)];
-        Coordinate to = allCoordinates[distr(gen)];
-
-        while (from.latitude == to.latitude && from.longitude == to.longitude) {
-            to = allCoordinates[distr(gen)];
-        }
-
-        std::string fromName = "RandomFrom_" + std::to_string(i);
-        std::string toName = "RandomTo_" + std::to_string(i);
-
-        testRoute(jeepneyNetwork, nodeGraph, from, fromName, to, toName, transferRange);
-
-        printProgressBar(i + 1, totalTests);  // <--- Add this
-    }
-
-    std::cout << std::endl; // After loop finishes, move to new line
-
+    std::cout << "\nAll tests completed successfully!" << std::endl;
     return 0;
 }
 
-
-
-// g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp algorithms/astar/astar.cpp algorithms/djikstra/djikstra.cpp algorithms/node.cpp -o main
+// g++ -std=c++17 main.cpp TFTFGraph/TFTFGraph.cpp TFTFGraph/Helpers/helpers.cpp algorithms/astar/astar.cpp algorithms/djikstra/djikstra.cpp algorithms/node.cpp benchmark_utils.cpp -o main

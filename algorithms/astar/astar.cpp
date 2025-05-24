@@ -15,8 +15,7 @@ using json = nlohmann::json;
 
 std::vector<Node> astar_geojson(const std::string &filename, Node start, Node goal, std::map<Node, std::vector<std::pair<Node, double>>> graph)
 {
-    
-    auto start_time = std::chrono::high_resolution_clock::now(); // start timing
+    auto start_time = std::chrono::high_resolution_clock::now();
     
     // A* algorithm
     std::map<Node, double> gScore, fScore;
@@ -29,23 +28,49 @@ std::vector<Node> astar_geojson(const std::string &filename, Node start, Node go
     };
     std::priority_queue<std::pair<double, Node>, std::vector<std::pair<double, Node>>, decltype(cmp)> openSet(cmp);
 
-    gScore[start] = 0;
-    fScore[start] = haversineNode(start, goal);
-    openSet.emplace(fScore[start], start);
+    // Initialize with transfer points near start
+    for (const auto& [node, edges] : graph) {
+        if (node.isTransferPoint) continue; // Skip other transfer points
+        
+        double distToStart = haversineNode(node, start);
+        if (distToStart <= 300.5) { // Same transfer range as TFTFGraph
+            gScore[node] = distToStart;
+            fScore[node] = distToStart + haversineNode(node, goal);
+            openSet.emplace(fScore[node], node);
+            cameFrom[node] = start;
+        }
+    }
 
     while (!openSet.empty())
     {
         Node current = openSet.top().second;
         openSet.pop();
 
-        if (current == goal)
-            break;
+        // Check if we're close enough to the goal
+        if (haversineNode(current, goal) <= 300.5) {
+            // Found a path to goal
+            std::vector<Node> path;
+            for (Node at = current; at != start; at = cameFrom[at])
+                path.push_back(at);
+            path.push_back(start);
+            std::reverse(path.begin(), path.end());
+            path.push_back(goal);
+            return path;
+        }
+
         if (visited.count(current))
             continue;
         visited.insert(current);
 
         for (auto &[neighbor, dist] : graph[current])
         {
+            // Skip invalid transfers
+            if (current.routeId != -1 && neighbor.routeId != -1 && 
+                current.routeId != neighbor.routeId && 
+                !neighbor.isTransferPoint) {
+                continue;
+            }
+
             double tentative_g = gScore[current] + dist;
             if (!gScore.count(neighbor) || tentative_g < gScore[neighbor])
             {
@@ -58,33 +83,5 @@ std::vector<Node> astar_geojson(const std::string &filename, Node start, Node go
     }
 
     std::vector<Node> path;
-    if (!cameFrom.count(goal))
-    {
-        std::cout << "No path found.\n";
-
-        auto end_time = std::chrono::high_resolution_clock::now(); // end timing
-        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-        std::cout << "A* completed in: " << duration << " ms\n";
-
-        return path;
-    }
-
-    for (Node at = goal; at != start; at = cameFrom[at])
-        path.push_back(at);
-    path.push_back(start);
-    std::reverse(path.begin(), path.end());
-
-    // std::cout << "A* Path Distance: " << gScore[goal] / 1000 << " km\n";
-    // std::cout << "Path:\n";
-    // for (auto &n : path)
-    // {
-    //     std::cout << std::fixed << std::setprecision(6);
-    //     std::cout << "[" << n.lon << ", " << n.lat << "],\n";
-    // }
-
-    // auto end_time = std::chrono::high_resolution_clock::now(); // end timing
-    // auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
-    // std::cout << "A* completed in: " << duration << " ms\n";
-
     return path;
 }
