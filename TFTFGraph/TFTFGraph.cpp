@@ -21,7 +21,6 @@ bool operator==(const Coordinate &lhs, const Coordinate &rhs)
     return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude;
 }
 
-
 void TFTFGraph::addRoute(int routeId, const std::string &routeName)
 {
     routes[routeId] = {routeId, routeName, {}};
@@ -185,7 +184,7 @@ double TFTFGraph::calculateTotalFare(
         int extraBlocks = static_cast<int>(std::ceil(extraDistance / 4.0f));
 
         totalFare += extraBlocks * FARE_PER_4KM;
-}
+    }
 
     return totalFare;
 }
@@ -213,9 +212,12 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
     {
         const TFTFEdge &edge = path[i];
         const RouteNode *route = takenRoutes[i];
-        std::vector<Coordinate> subPath;
 
-        // std::cout << "Route ID: " << route->routeId << "\n";
+        // Skip artificial edges (routeId -1)
+        if (route->routeId == -1)
+            continue;
+
+        std::vector<Coordinate> subPath;
 
         if (i == 0)
         {
@@ -223,19 +225,16 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
             int startIdx = getClosestIndex(route->path, edge.transferZone1.closestCoord);
             int endIxd = getClosestIndex(route->path, edge.transferZone2.closestCoord);
             subPath = getFullSegmentPath(route->path, startIdx, endIxd, route->isLoop);
-            // std::cout << "Subpath size: " << subPath.size() << "\n";
         }
         else if (i == path.size() - 1)
         {
             subPath = getShortestSegmentPath(route->path, edge.transferZone1.closestCoord, edge.transferZone2.closestCoord, route->isLoop);
-            // std::cout << "Subpath size: " << subPath.size() << "\n";
         }
         else
         {
             // Intermediate: entry to exit of next
             const TFTFEdge &nextEdge = path[i + 1];
             subPath = getShortestSegmentPath(route->path, edge.transferZone2.closestCoord, nextEdge.transferZone1.closestCoord, route->isLoop);
-            // std::cout << "Subpath size: " << subPath.size() << "\n";
         }
 
         // Avoid duplicate join point
@@ -247,7 +246,6 @@ std::vector<RoutePathInstruction> TFTFGraph::constructRoutePathInstructions(
 
         if (subPath.size() <= 1)
         {
-            // std::cout << "Subpath too short, skipping...\n";
             continue;
         }
 
@@ -274,7 +272,8 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
     }
 
     // Step 2: Store best transfers per (fromID, toID)
-    struct TransferCandidate {
+    struct TransferCandidate
+    {
         Coordinate fromCoord;
         Coordinate toCoord;
         float dist;
@@ -295,14 +294,17 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
                 {
                     std::pair<int, int> neighborCell = {baseCell.first + dx, baseCell.second + dy};
                     auto it = spatialGrid.find(neighborCell);
-                    if (it == spatialGrid.end()) continue;
+                    if (it == spatialGrid.end())
+                        continue;
 
                     for (const auto &[toID, toCoord] : it->second)
                     {
-                        if (toID == fromID) continue;
+                        if (toID == fromID)
+                            continue;
 
                         float dist = haversine(fromCoord, toCoord);
-                        if (dist > transferRangeMeters) continue;
+                        if (dist > transferRangeMeters)
+                            continue;
 
                         auto key = std::make_pair(fromID, toID);
                         if (!bestTransfers.count(key) || dist < bestTransfers[key].dist)
@@ -325,20 +327,17 @@ void TFTFGraph::createTransfersFromCoordinates(float transferRangeMeters)
             .routeId = fromID,
             .start = routes[fromID].path.front(),
             .end = routes[fromID].path.back(),
-            .closestCoord = candidate.fromCoord
-        };
+            .closestCoord = candidate.fromCoord};
 
         TransferZone zone2 = {
             .routeId = toID,
             .start = routes[toID].path.front(),
             .end = routes[toID].path.back(),
-            .closestCoord = candidate.toCoord
-        };
+            .closestCoord = candidate.toCoord};
 
         addEdge(fromID, toID, zone1, zone2, candidate.dist);
     }
 }
-
 
 std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDistanceMeters)
 {
@@ -346,13 +345,16 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDi
     std::map<int, float> routeMinDistances;
 
     // Find minimum distance to each route
-    for (const auto &[routeId, route] : routes) {
+    for (const auto &[routeId, route] : routes)
+    {
         auto densePath = densifyPath(route.path, 25.0f);
         float minDist = std::numeric_limits<float>::infinity();
-        
-        for (const auto &point : densePath) {
+
+        for (const auto &point : densePath)
+        {
             float dist = haversine(coord, point);
-            if (dist <= maxDistanceMeters && dist < minDist) {
+            if (dist <= maxDistanceMeters && dist < minDist)
+            {
                 minDist = dist;
                 routeMinDistances[routeId] = dist;
             }
@@ -361,15 +363,18 @@ std::vector<int> TFTFGraph::getNearbyRoutes(const Coordinate &coord, float maxDi
 
     // Sort routes by distance
     std::vector<std::pair<int, float>> sortedRoutes;
-    for (const auto &[routeId, dist] : routeMinDistances) {
+    for (const auto &[routeId, dist] : routeMinDistances)
+    {
         sortedRoutes.push_back({routeId, dist});
     }
     std::sort(sortedRoutes.begin(), sortedRoutes.end(),
-              [](const auto &a, const auto &b) { return a.second < b.second; });
+              [](const auto &a, const auto &b)
+              { return a.second < b.second; });
 
     // Take only the 3 closest routes
     std::vector<int> nearby;
-    for (size_t i = 0; i < std::min(size_t(3), sortedRoutes.size()); ++i) {
+    for (size_t i = 0; i < std::min(size_t(3), sortedRoutes.size()); ++i)
+    {
         nearby.push_back(sortedRoutes[i].first);
     }
 
@@ -391,7 +396,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
     };
 
     std::queue<TransferNode> q;
-    std::unordered_map<int, int> minTransfers;  // routeId -> fewest transfers
+    std::unordered_map<int, int> minTransfers; // routeId -> fewest transfers
     std::vector<std::vector<TFTFEdge>> candidatePaths;
 
     Coordinate startPos = routes.at(startRouteId).path[projectedStartIdx];
@@ -406,12 +411,12 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
         q.pop();
 
         if (curr.transfers > minTransferCount)
-            continue;  // Stop exploring once deeper than the shortest transfer path
+            continue; // Stop exploring once deeper than the shortest transfer path
 
         if (curr.routeId == endRouteId)
         {
             minTransferCount = curr.transfers;
-            candidatePaths.push_back(curr.path);  // Store this path
+            candidatePaths.push_back(curr.path); // Store this path
             continue;
         }
 
@@ -428,7 +433,7 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
             }
 
             if (minTransfers.count(nextRouteId) && curr.transfers + 1 > minTransfers[nextRouteId])
-                continue;  // We've already reached this with fewer transfers
+                continue; // We've already reached this with fewer transfers
 
             // Track minimal transfers
             minTransfers[nextRouteId] = curr.transfers + 1;
@@ -491,13 +496,14 @@ void printRoutePathInstructions(const std::vector<RoutePathInstruction> &instruc
 #include <random>
 using json = nlohmann::json;
 
-std::string generateRandomColor() {
+std::string generateRandomColor()
+{
     std::random_device rd;
     std::mt19937 gen(rd());
     std::uniform_int_distribution<> dist(0, 255);
 
     std::ostringstream color;
-    color << "#" << std::hex << std::setfill('0') 
+    color << "#" << std::hex << std::setfill('0')
           << std::setw(2) << dist(gen)
           << std::setw(2) << dist(gen)
           << std::setw(2) << dist(gen);
@@ -513,15 +519,17 @@ void writeRoutePathInstructionsToGeoJSON(
     json geojson = generateRoutePathGeoJSON(instructions, startCoord, endCoord);
 
     std::ofstream file(filename);
-    if (file.is_open()) {
+    if (file.is_open())
+    {
         file << std::setw(2) << geojson << std::endl;
         file.close();
         std::cout << "GeoJSON written to: " << filename << "\n";
-    } else {
+    }
+    else
+    {
         std::cerr << "Failed to open file for writing: " << filename << "\n";
     }
 }
-
 
 double TFTFGraph::calculateFareFromInstructions(const std::vector<RoutePathInstruction> &routeInstructions)
 {
@@ -529,38 +537,41 @@ double TFTFGraph::calculateFareFromInstructions(const std::vector<RoutePathInstr
     constexpr float FARE_PER_4KM = 1.5f;
     constexpr float FREE_KM = 4.0f;
 
-    double totalDistance = 0.0;
+    double totalFare = 0.0;
 
     for (const auto &instr : routeInstructions)
     {
+        double routeDistance = 0.0;
         const auto &path = instr.path;
+
+        // Calculate distance for this route
         for (size_t i = 1; i < path.size(); ++i)
         {
-            totalDistance += haversine(path[i - 1], path[i]);
+            routeDistance += haversine(path[i - 1], path[i]);
         }
-    }
 
-    double totalFare = BASE_FARE * routeInstructions.size();
-    float distanceInKm = totalDistance / 1000.0f;
+        // Calculate fare for this route
+        double routeFare = BASE_FARE;
+        float distanceInKm = routeDistance / 1000.0f;
 
-    if (distanceInKm > FREE_KM)
-    {
-        float extraDistance = distanceInKm - FREE_KM;
-        int extraBlocks = static_cast<int>(std::ceil(extraDistance / 4.0f));
-        totalFare += extraBlocks * FARE_PER_4KM;
+        if (distanceInKm > FREE_KM)
+        {
+            float extraDistance = distanceInKm - FREE_KM;
+            int extraBlocks = static_cast<int>(std::ceil(extraDistance / 4.0f));
+            routeFare += extraBlocks * FARE_PER_4KM;
+        }
+
+        totalFare += routeFare;
     }
 
     return totalFare;
 }
 
-
 std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     const Coordinate &startCoord,
-    const Coordinate &endCoord
-    )
+    const Coordinate &endCoord)
 {
     auto start = std::chrono::high_resolution_clock::now();
-
 
     std::vector<int> startCandidates = getNearbyRoutes(startCoord, 300.0f);
     std::vector<int> endCandidates = getNearbyRoutes(endCoord, 300.0f);
@@ -598,15 +609,13 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
                     .routeId = startId,
                     .start = routes[startId].path.front(),
                     .end = routes[startId].path.back(),
-                    .closestCoord = projectOntoPath(startCoord, routes[startId].path)
-                };
+                    .closestCoord = projectOntoPath(startCoord, routes[startId].path)};
 
                 TransferZone endZone = {
                     .routeId = endId,
                     .start = routes[endId].path.front(),
                     .end = routes[endId].path.back(),
-                    .closestCoord = projectOntoPath(endCoord, routes[endId].path)
-                };
+                    .closestCoord = projectOntoPath(endCoord, routes[endId].path)};
 
                 TFTFEdge edge;
                 edge.transferCost = segmentDistance;
@@ -618,7 +627,8 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
             {
                 int projStart = getClosestIndex(routes.at(startId).path, startCoord);
                 path = findMinFarePath(startId, endId, projStart);
-                if (path.empty()) continue;
+                if (path.empty())
+                    continue;
 
                 fare = calculateTotalFare(path, startCoord, endCoord);
             }
@@ -647,16 +657,14 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
             .routeId = bestStartRouteId,
             .start = routes[bestStartRouteId].path.front(),
             .end = routes[bestStartRouteId].path.back(),
-            .closestCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path)
-        };
+            .closestCoord = projectOntoPath(startCoord, routes[bestStartRouteId].path)};
 
         TransferZone firstZone = bestPath.front().transferZone1;
 
         TFTFEdge startEdge = {
             .transferCost = 0.0f,
             .transferZone1 = startZone,
-            .transferZone2 = firstZone
-        };
+            .transferZone2 = firstZone};
 
         bestPath.insert(bestPath.begin(), startEdge);
     }
@@ -668,14 +676,12 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
         .routeId = -1,
         .start = endCoord,
         .end = endCoord,
-        .closestCoord = endCoord
-    };
+        .closestCoord = endCoord};
 
     TFTFEdge endEdge = {
         .transferCost = 0.0f,
         .transferZone1 = lastZone,
-        .transferZone2 = endZone
-    };
+        .transferZone2 = endZone};
 
     bestPath.push_back(endEdge);
 
@@ -684,10 +690,10 @@ std::vector<TFTFEdge> TFTFGraph::calculateRouteFromCoordinates(
     return bestPath;
 }
 
-std::unordered_map<int, RouteNode>& TFTFGraph::getRoutes() {
+std::unordered_map<int, RouteNode> &TFTFGraph::getRoutes()
+{
     return routes;
 }
-
 
 void TFTFGraph::getGraphDetails() const
 {
@@ -707,11 +713,13 @@ void TFTFGraph::getGraphDetails() const
     std::cout << "Total Coordinates: " << totalCoordinates << "\n";
 }
 
-json TFTFGraph::toJson() const {
+json TFTFGraph::toJson() const
+{
     json j;
     j["routes"] = json::array();
 
-    for (const auto& [routeId, route] : routes) {
+    for (const auto &[routeId, route] : routes)
+    {
         json routeJson;
         routeJson["id"] = route.routeId;
         routeJson["name"] = route.routeName;
@@ -719,23 +727,25 @@ json TFTFGraph::toJson() const {
 
         // Serialize coordinates
         routeJson["path"] = json::array();
-        for (const auto& coord : route.path) {
+        for (const auto &coord : route.path)
+        {
             routeJson["path"].push_back({{"lat", coord.latitude}, {"lon", coord.longitude}});
         }
 
         // Serialize edges
         routeJson["edges"] = json::array();
-        for (const auto& edge : route.edges) {
+        for (const auto &edge : route.edges)
+        {
             json edgeJson;
             edgeJson["transfer_cost"] = edge.transferCost;
 
-            auto serializeZone = [](const TransferZone& z) -> json {
+            auto serializeZone = [](const TransferZone &z) -> json
+            {
                 return {
                     {"route_id", z.routeId},
                     {"start", {{"lat", z.start.latitude}, {"lon", z.start.longitude}}},
                     {"end", {{"lat", z.end.latitude}, {"lon", z.end.longitude}}},
-                    {"closest", {{"lat", z.closestCoord.latitude}, {"lon", z.closestCoord.longitude}}}
-                };
+                    {"closest", {{"lat", z.closestCoord.latitude}, {"lon", z.closestCoord.longitude}}}};
             };
 
             edgeJson["zone1"] = serializeZone(edge.transferZone1);
@@ -750,9 +760,11 @@ json TFTFGraph::toJson() const {
     return j;
 }
 
-void saveGraphToDisk(const TFTFGraph& graph, const std::string& filename) {
+void saveGraphToDisk(const TFTFGraph &graph, const std::string &filename)
+{
     std::ofstream outFile(filename);
-    if (!outFile.is_open()) {
+    if (!outFile.is_open())
+    {
         std::cerr << "Failed to open file for writing: " << filename << "\n";
         return;
     }
@@ -762,10 +774,12 @@ void saveGraphToDisk(const TFTFGraph& graph, const std::string& filename) {
     std::cout << "Graph saved to " << filename << "\n";
 }
 
-TFTFGraph loadGraphFromDisk(const std::string& filename) {
+TFTFGraph loadGraphFromDisk(const std::string &filename)
+{
     TFTFGraph graph;
     std::ifstream inFile(filename);
-    if (!inFile.is_open()) {
+    if (!inFile.is_open())
+    {
         std::cerr << "Failed to open file: " << filename << "\n";
         return graph;
     }
@@ -774,38 +788,40 @@ TFTFGraph loadGraphFromDisk(const std::string& filename) {
     inFile >> j;
     inFile.close();
 
-    for (const auto& routeJson : j["routes"]) {
+    for (const auto &routeJson : j["routes"])
+    {
         int routeId = routeJson["id"];
         std::string routeName = routeJson["name"];
         bool isLoop = routeJson["is_loop"];
 
         std::vector<Coordinate> path;
-        for (const auto& coordJson : routeJson["path"]) {
+        for (const auto &coordJson : routeJson["path"])
+        {
             path.emplace_back(Coordinate{
                 coordJson["lat"].get<double>(),
-                coordJson["lon"].get<double>()
-            });
+                coordJson["lon"].get<double>()});
         }
 
         graph.addRoute(routeId, routeName);
         graph.setRoutePath(routeId, path);
 
         // Use getRoutes() to access and update the route
-        auto& routesMap = graph.getRoutes();
+        auto &routesMap = graph.getRoutes();
         routesMap.at(routeId).isLoop = isLoop;
 
         // Deserialize edges
-        for (const auto& edgeJson : routeJson["edges"]) {
+        for (const auto &edgeJson : routeJson["edges"])
+        {
             TFTFEdge edge;
             edge.transferCost = edgeJson["transfer_cost"];
 
-            auto parseZone = [](const json& z) -> TransferZone {
+            auto parseZone = [](const json &z) -> TransferZone
+            {
                 return {
                     .routeId = z["route_id"],
                     .start = {z["start"]["lat"], z["start"]["lon"]},
                     .end = {z["end"]["lat"], z["end"]["lon"]},
-                    .closestCoord = {z["closest"]["lat"], z["closest"]["lon"]}
-                };
+                    .closestCoord = {z["closest"]["lat"], z["closest"]["lon"]}};
             };
 
             edge.transferZone1 = parseZone(edgeJson["zone1"]);
@@ -827,45 +843,36 @@ json generateRoutePathGeoJSON(
     featureCollection["type"] = "FeatureCollection";
     featureCollection["features"] = json::array();
 
-    for (const auto &instr : instructions) {
-        if (instr.path.empty()) continue;
+    for (const auto &instr : instructions)
+    {
+        if (instr.path.empty())
+            continue;
 
         json lineFeature;
         lineFeature["type"] = "Feature";
         lineFeature["geometry"]["type"] = "LineString";
 
-        for (const auto &coord : instr.path) {
+        for (const auto &coord : instr.path)
+        {
             lineFeature["geometry"]["coordinates"].push_back({coord.longitude, coord.latitude});
         }
 
         lineFeature["properties"] = {
             {"route_name", instr.routeName},
-            {"route_id", instr.routeId}
-        };
+            {"route_id", instr.routeId}};
 
         featureCollection["features"].push_back(lineFeature);
     }
 
     // Start point
-    featureCollection["features"].push_back({
-        {"type", "Feature"},
-        {"geometry", {
-            {"type", "Point"},
-            {"coordinates", {startCoord.longitude, startCoord.latitude}}
-        }},
-        {"properties", {{"marker", "start"}}}
-    });
+    featureCollection["features"].push_back({{"type", "Feature"},
+                                             {"geometry", {{"type", "Point"}, {"coordinates", {startCoord.longitude, startCoord.latitude}}}},
+                                             {"properties", {{"marker", "start"}}}});
 
     // End point
-    featureCollection["features"].push_back({
-        {"type", "Feature"},
-        {"geometry", {
-            {"type", "Point"},
-            {"coordinates", {endCoord.longitude, endCoord.latitude}}
-        }},
-        {"properties", {{"marker", "end"}}}
-    });
+    featureCollection["features"].push_back({{"type", "Feature"},
+                                             {"geometry", {{"type", "Point"}, {"coordinates", {endCoord.longitude, endCoord.latitude}}}},
+                                             {"properties", {{"marker", "end"}}}});
 
     return featureCollection;
 }
-
