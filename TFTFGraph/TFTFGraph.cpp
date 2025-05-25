@@ -451,21 +451,21 @@ std::vector<TFTFEdge> TFTFGraph::findMinFarePath(
 
     std::vector<TFTFEdge> bestPath = candidatePaths[0];
     float bestFare = 0.0f;
-    // for (const TFTFEdge &e : bestPath)
-    //     bestFare += e.transferCost;
+    for (const TFTFEdge &e : bestPath)
+        bestFare += e.transferCost;
 
-    // for (const auto &path : candidatePaths)
-    // {
-    //     float totalFare = 0.0f;
-    //     for (const TFTFEdge &e : path)
-    //         totalFare += e.transferCost;
+    for (const auto &path : candidatePaths)
+    {
+        float totalFare = 0.0f;
+        for (const TFTFEdge &e : path)
+            totalFare += e.transferCost;
 
-    //     if (totalFare < bestFare)
-    //     {
-    //         bestFare = totalFare;
-    //         bestPath = path;
-    //     }
-    // }
+        if (totalFare < bestFare)
+        {
+            bestFare = totalFare;
+            bestPath = path;
+        }
+    }
 
     return bestPath;
 }
