@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TFTF vs Traditional Visualization</title>
+  <link
+    rel="stylesheet"
+    href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+    crossorigin=""
+  />
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: Inter, Arial, sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: #f6f8fb;
+      color: #1f2937;
+    }
+
+    .app {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 12px;
+    }
+
+    .panel {
+      background: #fff;
+      border: 1px solid #dbe3ee;
+      border-radius: 10px;
+      padding: 12px;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .control-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    select,
+    button {
+      height: 30px;
+      border: 1px solid #cbd5e1;
+      border-radius: 6px;
+      background: #fff;
+      color: #1f2937;
+      font-size: 13px;
+      padding: 0 8px;
+    }
+
+    button {
+      cursor: pointer;
+      background: #2563eb;
+      color: #fff;
+      border-color: #1d4ed8;
+      font-weight: 600;
+    }
+
+    button:disabled {
+      background: #94a3b8;
+      border-color: #94a3b8;
+      cursor: not-allowed;
+    }
+
+    input[type="file"] {
+      max-width: 420px;
+    }
+
+    .hint {
+      font-size: 13px;
+      color: #4b5563;
+      margin-top: 8px;
+    }
+
+    .maps {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .map-wrap {
+      background: #fff;
+      border: 1px solid #dbe3ee;
+      border-radius: 10px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .map-title {
+      margin: 0;
+      padding: 10px 12px;
+      border-bottom: 1px solid #dbe3ee;
+      font-size: 14px;
+      font-weight: 700;
+      background: #f9fbff;
+    }
+
+    .map {
+      height: 72vh;
+      min-height: 460px;
+    }
+
+    .legend {
+      border-top: 1px solid #dbe3ee;
+      background: #fafcff;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: #334155;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      white-space: nowrap;
+    }
+
+    .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      border: 1px solid rgba(15, 23, 42, 0.35);
+      flex: 0 0 12px;
+    }
+
+    .north-arrow {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+      border: 1px solid #cbd5e1;
+      background: rgba(255, 255, 255, 0.92);
+      display: grid;
+      place-items: center;
+      box-shadow: 0 1px 6px rgba(15, 23, 42, 0.2);
+      user-select: none;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .north-arrow::before {
+      content: "▲ N";
+      font-size: 13px;
+      line-height: 1;
+    }
+
+    .status {
+      font-size: 13px;
+      color: #374151;
+      margin-top: 8px;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 980px) {
+      .maps {
+        grid-template-columns: 1fr;
+      }
+
+      .map {
+        height: 56vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <section class="panel">
+      <div class="controls">
+        <strong>Load comparison JSON</strong>
+        <input id="fileInput" type="file" accept=".json,.geojson" />
+        <div class="control-group">
+          <label for="mapTypeSelect">Map type</label>
+          <select id="mapTypeSelect">
+            <option value="osm">OpenStreetMap</option>
+            <option value="carto_light">Carto Light</option>
+            <option value="carto_dark">Carto Dark</option>
+            <option value="esri_sat">Satellite</option>
+          </select>
+        </div>
+        <div class="control-group">
+          <label for="exportScaleSelect">Export quality</label>
+          <select id="exportScaleSelect">
+            <option value="2">2x</option>
+            <option value="3" selected>3x</option>
+            <option value="4">4x</option>
+          </select>
+          <button id="exportPngBtn" type="button">Export PNG</button>
+        </div>
+      </div>
+      <div class="hint">
+        Accepts either full runner response (with <code>comparison_geojson</code>) or a plain GeoJSON FeatureCollection with TFTF + traditional lines.
+      </div>
+      <div id="status" class="status">Waiting for file…</div>
+    </section>
+
+    <section class="maps">
+      <div class="map-wrap">
+        <h3 class="map-title">TFTF</h3>
+        <div id="mapTftf" class="map"></div>
+        <div id="legendTftf" class="legend">Legend will appear after loading data.</div>
+      </div>
+      <div class="map-wrap">
+        <h3 class="map-title">Traditional</h3>
+        <div id="mapTraditional" class="map"></div>
+        <div id="legendTraditional" class="legend">Legend will appear after loading data.</div>
+      </div>
+    </section>
+  </div>
+
+  <script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+    crossorigin=""
+  ></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+  <script>
+    const statusEl = document.getElementById("status");
+    const mapTypeSelect = document.getElementById("mapTypeSelect");
+    const exportScaleSelect = document.getElementById("exportScaleSelect");
+    const exportPngBtn = document.getElementById("exportPngBtn");
+    const legendTftfEl = document.getElementById("legendTftf");
+    const legendTraditionalEl = document.getElementById("legendTraditional");
+
+    function updateStatus(text) {
+      statusEl.textContent = text;
+    }
+
+    const basemapFactories = {
+      osm: () => L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        maxZoom: 20,
+        crossOrigin: true,
+        attribution: "&copy; OpenStreetMap contributors"
+      }),
+      carto_light: () => L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        crossOrigin: true,
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+      }),
+      carto_dark: () => L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+        maxZoom: 20,
+        crossOrigin: true,
+        attribution: "&copy; OpenStreetMap contributors &copy; CARTO"
+      }),
+      esri_sat: () => L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}", {
+        maxZoom: 20,
+        crossOrigin: true,
+        attribution: "Tiles &copy; Esri"
+      })
+    };
+
+    let activeBasemap = "osm";
+
+    function createMap(targetId) {
+      const map = L.map(targetId, {
+        zoomControl: false
+      });
+
+      L.control.scale({ position: "bottomleft", imperial: false }).addTo(map);
+
+      const NorthControl = L.Control.extend({
+        options: { position: "topright" },
+        onAdd: function () {
+          const div = L.DomUtil.create("div", "north-arrow");
+          return div;
+        }
+      });
+      map.addControl(new NorthControl());
+
+      map.setView([8.49, 124.64], 12);
+      return map;
+    }
+
+    const mapTftf = createMap("mapTftf");
+    const mapTraditional = createMap("mapTraditional");
+    const mapLayers = {
+      tftf: null,
+      traditional: null
+    };
+
+    function applyBasemap(basemapKey) {
+      const key = basemapFactories[basemapKey] ? basemapKey : "osm";
+      activeBasemap = key;
+
+      if (mapLayers.tftf) mapTftf.removeLayer(mapLayers.tftf);
+      if (mapLayers.traditional) mapTraditional.removeLayer(mapLayers.traditional);
+
+      mapLayers.tftf = basemapFactories[key]().addTo(mapTftf);
+      mapLayers.traditional = basemapFactories[key]().addTo(mapTraditional);
+      mapTypeSelect.value = key;
+    }
+
+    applyBasemap(activeBasemap);
+
+    let layerTftf = null;
+    let layerTraditional = null;
+    let markerLayerTftf = null;
+    let markerLayerTraditional = null;
+    let sharedBounds = null;
+
+    function fitMapsToSharedBounds() {
+      if (!sharedBounds) return;
+      const options = { padding: [32, 32] };
+      mapTftf.fitBounds(sharedBounds, options);
+      mapTraditional.fitBounds(sharedBounds, options);
+    }
+
+    function extractComparisonGeoJSON(input) {
+      if (!input || typeof input !== "object") return null;
+
+      if (input.type === "FeatureCollection" && Array.isArray(input.features)) {
+        return input;
+      }
+
+      if (input.comparison_geojson && input.comparison_geojson.type === "FeatureCollection") {
+        return input.comparison_geojson;
+      }
+
+      const fallbackFeatures = [];
+      if (input.tftf && input.tftf.segment_geojson?.features) {
+        fallbackFeatures.push(...input.tftf.segment_geojson.features);
+      }
+      if (input.traditional && input.traditional.segment_geojson?.features) {
+        fallbackFeatures.push(...input.traditional.segment_geojson.features);
+      }
+
+      if (fallbackFeatures.length === 0 && input.tftf && input.tftf.geojson) fallbackFeatures.push(input.tftf.geojson);
+      if (fallbackFeatures.length <= 1 && input.traditional && input.traditional.geojson) fallbackFeatures.push(input.traditional.geojson);
+      if (fallbackFeatures.length > 0) {
+        return { type: "FeatureCollection", features: fallbackFeatures };
+      }
+
+      return null;
+    }
+
+    function splitFeatures(featureCollection) {
+      const tftfFeatures = [];
+      const traditionalFeatures = [];
+
+      for (const feature of featureCollection.features) {
+        const algorithm = (feature?.properties?.algorithm || "").toLowerCase();
+        const label = (feature?.properties?.label || "").toLowerCase();
+        if (algorithm === "tftf" || label.includes("tftf")) {
+          tftfFeatures.push(feature);
+        } else {
+          traditionalFeatures.push(feature);
+        }
+      }
+
+      if (tftfFeatures.length === 0 && featureCollection.features.length > 0) {
+        tftfFeatures.push(featureCollection.features[0]);
+      }
+      if (traditionalFeatures.length === 0 && featureCollection.features.length > 1) {
+        traditionalFeatures.push(featureCollection.features[1]);
+      }
+
+      return { tftfFeatures, traditionalFeatures };
+    }
+
+    const PALETTE = [
+      "#2563eb",
+      "#ef4444",
+      "#16a34a",
+      "#d97706",
+      "#7c3aed",
+      "#0ea5e9",
+      "#e11d48",
+      "#14b8a6"
+    ];
+
+    function featureStyle(feature, color, overrides = {}) {
+      return {
+        color,
+        weight: 5,
+        opacity: 0.88,
+        lineJoin: "round",
+        ...overrides
+      };
+    }
+
+    function renderLegend(legendEl, legendEntries) {
+      if (!legendEntries || legendEntries.length === 0) {
+        legendEl.textContent = "No route segments available.";
+        return;
+      }
+
+      legendEl.innerHTML = "";
+      for (const entry of legendEntries) {
+        const item = document.createElement("span");
+        item.className = "legend-item";
+
+        const swatch = document.createElement("span");
+        swatch.className = "legend-swatch";
+        swatch.style.backgroundColor = entry.color;
+
+        const label = document.createElement("span");
+        const kilometers = Number.isFinite(entry.meters) ? (entry.meters / 1000) : 0;
+        const kmText = kilometers.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        label.textContent = `${entry.jeepLabel}: ${entry.routeName} (${kmText} km)`;
+
+        item.appendChild(swatch);
+        item.appendChild(label);
+        legendEl.appendChild(item);
+      }
+    }
+
+    function jeepLabelFromIndex(index) {
+      let value = index;
+      let label = "";
+      do {
+        label = String.fromCharCode(65 + (value % 26)) + label;
+        value = Math.floor(value / 26) - 1;
+      } while (value >= 0);
+      return `Jeep ${label}`;
+    }
+
+    function buildRouteKey(properties, fallbackIndex = 0) {
+      const routeId = properties?.route_id;
+      if (routeId !== undefined && routeId !== null) {
+        return `id:${routeId}`;
+      }
+
+      const routeName = (properties?.label || "").trim().toLowerCase();
+      if (routeName.length > 0) {
+        return `name:${routeName}`;
+      }
+
+      return `idx:${fallbackIndex}`;
+    }
+
+    function haversineMeters(lat1, lon1, lat2, lon2) {
+      const toRad = (value) => (value * Math.PI) / 180;
+      const R = 6371000;
+      const dLat = toRad(lat2 - lat1);
+      const dLon = toRad(lon2 - lon1);
+      const a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      return R * c;
+    }
+
+    function lineDistanceMeters(coordinates) {
+      if (!Array.isArray(coordinates) || coordinates.length < 2) return 0;
+      let total = 0;
+      for (let i = 1; i < coordinates.length; i += 1) {
+        const prev = coordinates[i - 1];
+        const curr = coordinates[i];
+        if (!Array.isArray(prev) || !Array.isArray(curr) || prev.length < 2 || curr.length < 2) continue;
+        const [prevLon, prevLat] = prev;
+        const [currLon, currLat] = curr;
+        total += haversineMeters(prevLat, prevLon, currLat, currLon);
+      }
+      return total;
+    }
+
+    function featureDistanceMeters(feature) {
+      const geometry = feature?.geometry;
+      if (!geometry) return 0;
+
+      if (geometry.type === "LineString") {
+        return lineDistanceMeters(geometry.coordinates);
+      }
+
+      if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+        return geometry.coordinates.reduce((sum, line) => sum + lineDistanceMeters(line), 0);
+      }
+
+      return 0;
+    }
+
+    function extractLineCoordinates(feature) {
+      const geometry = feature?.geometry;
+      if (!geometry) return [];
+
+      if (geometry.type === "LineString" && Array.isArray(geometry.coordinates)) {
+        return geometry.coordinates;
+      }
+
+      if (geometry.type === "MultiLineString" && Array.isArray(geometry.coordinates)) {
+        return geometry.coordinates.flat();
+      }
+
+      return [];
+    }
+
+    function getEndpointsFromFeatures(features) {
+      if (!features || features.length === 0) return null;
+
+      const ordered = [...features].sort((a, b) => {
+        const ai = Number(a?.properties?.segment_index ?? 0);
+        const bi = Number(b?.properties?.segment_index ?? 0);
+        return ai - bi;
+      });
+
+      const firstCoords = extractLineCoordinates(ordered[0]);
+      const lastCoords = extractLineCoordinates(ordered[ordered.length - 1]);
+
+      if (firstCoords.length === 0 || lastCoords.length === 0) return null;
+
+      const start = firstCoords[0];
+      const end = lastCoords[lastCoords.length - 1];
+      if (!start || !end || start.length < 2 || end.length < 2) return null;
+
+      return {
+        start: { lat: start[1], lon: start[0] },
+        end: { lat: end[1], lon: end[0] }
+      };
+    }
+
+    function drawStartEndMarkers(map, existingLayer, endpoints, mapLabel) {
+      if (existingLayer) {
+        map.removeLayer(existingLayer);
+      }
+      if (!endpoints) {
+        return null;
+      }
+
+      const group = L.layerGroup();
+
+      const startMarker = L.circleMarker([endpoints.start.lat, endpoints.start.lon], {
+        radius: 7,
+        color: "#15803d",
+        fillColor: "#22c55e",
+        fillOpacity: 0.95,
+        weight: 2
+      }).bindPopup(`<strong>Start</strong><br/>${mapLabel}`);
+
+      const endMarker = L.circleMarker([endpoints.end.lat, endpoints.end.lon], {
+        radius: 7,
+        color: "#b91c1c",
+        fillColor: "#ef4444",
+        fillOpacity: 0.95,
+        weight: 2
+      }).bindPopup(`<strong>End</strong><br/>${mapLabel}`);
+
+      startMarker.bindTooltip("Start", { direction: "top", offset: [0, -8], permanent: true });
+      endMarker.bindTooltip("End", { direction: "top", offset: [0, -8], permanent: true });
+
+      group.addLayer(startMarker);
+      group.addLayer(endMarker);
+      group.addTo(map);
+      return group;
+    }
+
+    function drawFeatures(map, existingLayer, features, sharedRouteStyles, styleOverrides = {}) {
+      if (existingLayer) {
+        map.removeLayer(existingLayer);
+      }
+      if (!features || features.length === 0) {
+        return { layer: null, legendEntries: [] };
+      }
+
+      const preparedFeatures = features.map((feature, index) => {
+        const cloned = JSON.parse(JSON.stringify(feature));
+        cloned.properties = cloned.properties || {};
+
+        const routeKey = buildRouteKey(cloned.properties, index);
+        const sharedStyle = sharedRouteStyles.get(routeKey) || {
+          color: PALETTE[index % PALETTE.length],
+          jeepLabel: jeepLabelFromIndex(index)
+        };
+
+        cloned.properties.__vizRouteKey = routeKey;
+        cloned.properties.__vizColor = sharedStyle.color;
+        cloned.properties.__vizJeepLabel = sharedStyle.jeepLabel;
+        return cloned;
+      });
+
+      const routeStats = new Map();
+      for (const feature of preparedFeatures) {
+        const routeKey = feature?.properties?.__vizRouteKey;
+        if (!routeKey) continue;
+
+        const color = feature?.properties?.__vizColor || "#2563eb";
+        const jeepLabel = feature?.properties?.__vizJeepLabel || "Jeep ?";
+        const routeName = feature?.properties?.label || "Unknown Route";
+        const meters = featureDistanceMeters(feature);
+
+        if (!routeStats.has(routeKey)) {
+          routeStats.set(routeKey, {
+            color,
+            jeepLabel,
+            routeName,
+            meters: 0
+          });
+        }
+
+        const existing = routeStats.get(routeKey);
+        existing.meters += meters;
+      }
+
+      const legendEntries = Array.from(routeStats.values());
+
+      const merged = {
+        type: "FeatureCollection",
+        features: preparedFeatures
+      };
+
+      const layer = L.geoJSON(merged, {
+        style: (feature) => {
+          const color = feature?.properties?.__vizColor || "#2563eb";
+          return featureStyle(feature, color, styleOverrides);
+        },
+        onEachFeature: (feature, geoLayer) => {
+          const label = feature?.properties?.label || "Unknown Route";
+          const routeId = feature?.properties?.route_id;
+          const segmentIndex = feature?.properties?.segment_index;
+          const algorithm = feature?.properties?.algorithm || "unknown";
+          const routeLine = routeId !== undefined ? `Route ID: ${routeId}` : "Route ID: n/a";
+          const segLine = segmentIndex !== undefined ? `Segment: ${segmentIndex + 1}` : "Segment: n/a";
+          geoLayer.bindPopup(`<strong>${label}</strong><br/>${routeLine}<br/>${segLine}<br/>Algorithm: ${algorithm}`);
+        }
+      }).addTo(map);
+      return { layer, legendEntries };
+    }
+
+    function handleParsedJson(parsed) {
+      const collection = extractComparisonGeoJSON(parsed);
+      if (!collection) {
+        updateStatus("Could not find comparison GeoJSON in that file.");
+        return;
+      }
+
+      const { tftfFeatures, traditionalFeatures } = splitFeatures(collection);
+
+      const combinedFeatures = [...tftfFeatures, ...traditionalFeatures];
+      const sharedRouteStyles = new Map();
+      let nextRouteIndex = 0;
+      for (let index = 0; index < combinedFeatures.length; index += 1) {
+        const feature = combinedFeatures[index];
+        const props = feature?.properties || {};
+        const routeKey = buildRouteKey(props, index);
+        if (!sharedRouteStyles.has(routeKey)) {
+          sharedRouteStyles.set(routeKey, {
+            color: PALETTE[nextRouteIndex % PALETTE.length],
+            jeepLabel: jeepLabelFromIndex(nextRouteIndex)
+          });
+          nextRouteIndex += 1;
+        }
+      }
+
+      const tftfResult = drawFeatures(mapTftf, layerTftf, tftfFeatures, sharedRouteStyles, { weight: 6, opacity: 0.95 });
+      const traditionalResult = drawFeatures(mapTraditional, layerTraditional, traditionalFeatures, sharedRouteStyles, { weight: 6, opacity: 0.95 });
+
+      layerTftf = tftfResult.layer;
+      layerTraditional = traditionalResult.layer;
+
+      const tftfEndpoints = getEndpointsFromFeatures(tftfFeatures);
+      const traditionalEndpoints = getEndpointsFromFeatures(traditionalFeatures);
+      markerLayerTftf = drawStartEndMarkers(mapTftf, markerLayerTftf, tftfEndpoints, "TFTF");
+      markerLayerTraditional = drawStartEndMarkers(mapTraditional, markerLayerTraditional, traditionalEndpoints, "Traditional");
+
+      renderLegend(legendTftfEl, tftfResult.legendEntries);
+      renderLegend(legendTraditionalEl, traditionalResult.legendEntries);
+
+      sharedBounds = null;
+      if (layerTftf && layerTraditional) {
+        const combined = layerTftf.getBounds();
+        combined.extend(layerTraditional.getBounds());
+        sharedBounds = combined;
+      } else if (layerTftf) {
+        sharedBounds = layerTftf.getBounds();
+      } else if (layerTraditional) {
+        sharedBounds = layerTraditional.getBounds();
+      }
+
+      fitMapsToSharedBounds();
+
+      const tDist = parsed?.tftf?.distance_m;
+      const trDist = parsed?.traditional?.distance_m;
+      const tRt = parsed?.tftf?.route_count;
+      const trRt = parsed?.traditional?.route_count;
+      const distanceSummary = (typeof tDist === "number" && typeof trDist === "number")
+        ? ` Dist(m): TFTF ${tDist.toFixed(2)} vs Traditional ${trDist.toFixed(2)}.`
+        : "";
+      const tftfSegments = parsed?.tftf?.route_segments || [];
+      const traditionalSegments = parsed?.traditional?.route_segments || [];
+      const tftfRouteNames = tftfSegments.map(s => s.route_name).filter(Boolean).join(" → ");
+      const traditionalRouteNames = traditionalSegments.map(s => s.route_name).filter(Boolean).join(" → ");
+
+      const routeSummary = (typeof tRt === "number" && typeof trRt === "number")
+        ? ` Routes used: TFTF ${tRt} vs Traditional ${trRt}.`
+        : "";
+
+      updateStatus(
+        `Loaded ${collection.features.length} feature(s).${routeSummary}${distanceSummary}\n` +
+        `TFTF routes: ${tftfRouteNames || "n/a"}\n` +
+        `Traditional routes: ${traditionalRouteNames || "n/a"}`
+      );
+    }
+
+    function parseJsonWithFallback(text) {
+      try {
+        return JSON.parse(text);
+      } catch (_) {
+        const start = text.indexOf("{");
+        const end = text.lastIndexOf("}");
+        if (start !== -1 && end !== -1 && end > start) {
+          return JSON.parse(text.slice(start, end + 1));
+        }
+        throw new Error("No valid JSON object found in file.");
+      }
+    }
+
+    async function exportComparisonPng() {
+      const mapsPanel = document.querySelector(".maps");
+      const scale = Number(exportScaleSelect.value || 3);
+
+      exportPngBtn.disabled = true;
+      const previousLabel = exportPngBtn.textContent;
+      exportPngBtn.textContent = "Exporting...";
+
+      try {
+        mapTftf.invalidateSize(true);
+        mapTraditional.invalidateSize(true);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
+        const canvas = await html2canvas(mapsPanel, {
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: "#ffffff",
+          scale,
+          logging: false
+        });
+
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const link = document.createElement("a");
+        link.download = `comparison-${activeBasemap}-${timestamp}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+
+        updateStatus(`${statusEl.textContent}\nExported PNG at ${scale}x quality.`);
+      } catch (error) {
+        updateStatus(`${statusEl.textContent}\nExport failed: ${error.message}`);
+      } finally {
+        exportPngBtn.disabled = false;
+        exportPngBtn.textContent = previousLabel;
+      }
+    }
+
+    document.getElementById("fileInput").addEventListener("change", async (event) => {
+      const file = event.target.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const parsed = parseJsonWithFallback(text);
+        handleParsedJson(parsed);
+      } catch (error) {
+        updateStatus(`Failed to parse file: ${error.message}`);
+      }
+    });
+
+    mapTypeSelect.addEventListener("change", (event) => {
+      applyBasemap(event.target.value);
+    });
+
+    exportPngBtn.addEventListener("click", () => {
+      exportComparisonPng();
+    });
+  </script>
+</body>
+</html>

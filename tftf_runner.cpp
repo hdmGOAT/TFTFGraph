@@ -6,6 +6,7 @@
 #include <fstream>
 #include <chrono>
 #include <set>
+#include <unordered_map>
 #include "./TFTFGraph/Helpers/helpers.h"
 #include "./algorithms/node.h"
 #include "./algorithms/astar/astar.h"
@@ -69,16 +70,33 @@ json makeLineFeature(const std::vector<Coordinate> &coords, const std::string &l
         {"geometry", {{"type", "LineString"}, {"coordinates", coordinates}}}};
 }
 
-json buildComparisonGeoJSON(const std::vector<Coordinate> &tftfCoords, const std::vector<Coordinate> &traditionalCoords, const std::string &algorithm)
+json makeSegmentFeature(const RoutePathInstruction &instruction, int segmentIndex, const std::string &algorithm)
+{
+    json coordinates = json::array();
+    for (const auto &coord : instruction.path)
+    {
+        coordinates.push_back({coord.longitude, coord.latitude});
+    }
+
+    return {
+        {"type", "Feature"},
+        {"properties", {
+            {"algorithm", algorithm},
+            {"label", instruction.routeName},
+            {"route_id", instruction.routeId},
+            {"segment_index", segmentIndex}
+        }},
+        {"geometry", {{"type", "LineString"}, {"coordinates", coordinates}}}};
+}
+
+json buildSegmentFeatureCollection(const std::vector<RoutePathInstruction> &instructions, const std::string &algorithm)
 {
     json features = json::array();
-    if (!tftfCoords.empty())
+    for (size_t i = 0; i < instructions.size(); ++i)
     {
-        features.push_back(makeLineFeature(tftfCoords, "TFTF", "#0066ff"));
-    }
-    if (!traditionalCoords.empty())
-    {
-        features.push_back(makeLineFeature(traditionalCoords, algorithm, "#ff6600"));
+        if (instructions[i].path.size() < 2)
+            continue;
+        features.push_back(makeSegmentFeature(instructions[i], static_cast<int>(i), algorithm));
     }
 
     return {
@@ -86,7 +104,34 @@ json buildComparisonGeoJSON(const std::vector<Coordinate> &tftfCoords, const std
         {"features", features}};
 }
 
-bool loadTraditionalGraph(const std::string &geojsonPath, std::map<Node, std::vector<std::pair<Node, double>>> &nodeGraph)
+json buildComparisonGeoJSON(
+    const std::vector<RoutePathInstruction> &tftfInstructions,
+    const std::vector<RoutePathInstruction> &traditionalInstructions,
+    const std::string &traditionalAlgorithm)
+{
+    json features = json::array();
+
+    json tftfFC = buildSegmentFeatureCollection(tftfInstructions, "tftf");
+    for (const auto &feature : tftfFC["features"])
+    {
+        features.push_back(feature);
+    }
+
+    json traditionalFC = buildSegmentFeatureCollection(traditionalInstructions, traditionalAlgorithm);
+    for (const auto &feature : traditionalFC["features"])
+    {
+        features.push_back(feature);
+    }
+
+    return {
+        {"type", "FeatureCollection"},
+        {"features", features}};
+}
+
+bool loadTraditionalGraph(
+    const std::string &geojsonPath,
+    std::map<Node, std::vector<std::pair<Node, double>>> &nodeGraph,
+    std::unordered_map<int, std::string> &routeNames)
 {
     std::ifstream file(geojsonPath);
     if (!file.is_open())
@@ -97,6 +142,23 @@ bool loadTraditionalGraph(const std::string &geojsonPath, std::map<Node, std::ve
     json geojson;
     file >> geojson;
     nodeGraph.clear();
+    routeNames.clear();
+
+    int routeId = 0;
+    for (const auto &feature : geojson["features"])
+    {
+        if (feature["geometry"]["type"] != "LineString")
+            continue;
+
+        std::string routeName = "Route_" + std::to_string(routeId);
+        if (feature.contains("properties") && feature["properties"].contains("name"))
+        {
+            routeName = feature["properties"]["name"].get<std::string>();
+        }
+        routeNames[routeId] = routeName;
+        routeId++;
+    }
+
     geojsonToNodeGraph(nodeGraph, geojson);
     return true;
 }
@@ -127,10 +189,73 @@ int countTraditionalRoutes(const std::vector<Node> &path)
     return static_cast<int>(uniqueRoutes.size());
 }
 
+json serializeCoordinates(const std::vector<Coordinate> &coords)
+{
+    json out = json::array();
+    for (const auto &coord : coords)
+    {
+        out.push_back({
+            {"lat", coord.latitude},
+            {"lon", coord.longitude}});
+    }
+    return out;
+}
+
+std::vector<RoutePathInstruction> buildTraditionalInstructions(
+    const std::vector<Node> &path,
+    const std::unordered_map<int, std::string> &routeNames)
+{
+    std::vector<RoutePathInstruction> instructions;
+    RoutePathInstruction current;
+    bool hasOpenSegment = false;
+
+    for (const auto &node : path)
+    {
+        if (node.routeId < 0)
+            continue;
+
+        Coordinate coord = {node.lat, node.lon};
+
+        if (!hasOpenSegment || current.routeId != node.routeId)
+        {
+            if (hasOpenSegment && current.path.size() >= 2)
+            {
+                instructions.push_back(current);
+            }
+
+            std::string routeName = "Route_" + std::to_string(node.routeId);
+            auto routeNameIt = routeNames.find(node.routeId);
+            if (routeNameIt != routeNames.end())
+            {
+                routeName = routeNameIt->second;
+            }
+
+            current = {node.routeId, routeName, {coord}};
+            hasOpenSegment = true;
+            continue;
+        }
+
+        if (current.path.empty() ||
+            current.path.back().latitude != coord.latitude ||
+            current.path.back().longitude != coord.longitude)
+        {
+            current.path.push_back(coord);
+        }
+    }
+
+    if (hasOpenSegment && current.path.size() >= 2)
+    {
+        instructions.push_back(current);
+    }
+
+    return instructions;
+}
+
 int main()
 {
     std::string line;
     std::map<Node, std::vector<std::pair<Node, double>>> traditionalGraph;
+    std::unordered_map<int, std::string> traditionalRouteNames;
     std::string loadedTraditionalGeojsonPath;
     std::string loadedTftfGraphPath = "data/graph.json";
 
@@ -196,8 +321,20 @@ int main()
                     {"found", true},
                     {"route_count", tftfRouteCount},
                     {"distance_m", std::round(tftfDistanceMeters * 100.0) / 100.0},
-                    {"geojson", makeLineFeature(tftfCoordinates, "TFTF", "#0066ff")}
+                    {"geojson", makeLineFeature(tftfCoordinates, "TFTF", "#0066ff")},
+                    {"route_segments", json::array()},
+                    {"segment_geojson", buildSegmentFeatureCollection(instructions, "tftf")}
                 }}};
+
+            for (const auto &instruction : instructions)
+            {
+                response["tftf"]["route_segments"].push_back({
+                    {"route_id", instruction.routeId},
+                    {"route_name", instruction.routeName},
+                    {"point_count", instruction.path.size()},
+                    {"coordinates", serializeCoordinates(instruction.path)}
+                });
+            }
 
             for (const auto &instr : instructions)
             {
@@ -239,7 +376,7 @@ int main()
             {
                 if (traditionalGeojsonPath != loadedTraditionalGeojsonPath)
                 {
-                    if (!loadTraditionalGraph(traditionalGeojsonPath, traditionalGraph))
+                    if (!loadTraditionalGraph(traditionalGeojsonPath, traditionalGraph, traditionalRouteNames))
                     {
                         throw std::runtime_error("Unable to open traditional_geojson file: " + traditionalGeojsonPath);
                     }
@@ -253,6 +390,7 @@ int main()
 
                 std::vector<Coordinate> traditionalCoordinates = nodePathToCoordinates(traditionalPath);
                 double traditionalDistanceMeters = calculatePolylineDistanceMeters(traditionalCoordinates);
+                std::vector<RoutePathInstruction> traditionalInstructions = buildTraditionalInstructions(traditionalPath, traditionalRouteNames);
 
                 response["traditional"] = {
                     {"algorithm", traditionalAlgorithm},
@@ -260,12 +398,24 @@ int main()
                     {"found", !traditionalPath.empty()},
                     {"route_count", countTraditionalRoutes(traditionalPath)},
                     {"distance_m", std::round(traditionalDistanceMeters * 100.0) / 100.0},
-                    {"geojson", makeLineFeature(traditionalCoordinates, traditionalAlgorithm, "#ff6600")}
+                    {"geojson", makeLineFeature(traditionalCoordinates, traditionalAlgorithm, "#ff6600")},
+                    {"route_segments", json::array()},
+                    {"segment_geojson", buildSegmentFeatureCollection(traditionalInstructions, traditionalAlgorithm)}
                 };
+
+                for (const auto &instruction : traditionalInstructions)
+                {
+                    response["traditional"]["route_segments"].push_back({
+                        {"route_id", instruction.routeId},
+                        {"route_name", instruction.routeName},
+                        {"point_count", instruction.path.size()},
+                        {"coordinates", serializeCoordinates(instruction.path)}
+                    });
+                }
 
                 if (includeComparisonGeojson)
                 {
-                    response["comparison_geojson"] = buildComparisonGeoJSON(tftfCoordinates, traditionalCoordinates, traditionalAlgorithm);
+                    response["comparison_geojson"] = buildComparisonGeoJSON(instructions, traditionalInstructions, traditionalAlgorithm);
                 }
             }
 

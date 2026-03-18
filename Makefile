@@ -23,8 +23,9 @@ END_LON ?= 124.64303
 TRAD_ALGO ?= dijkstra
 TRAD_GEOJSON ?= routes.geojson
 TFTF_GRAPH_JSON ?= data/graph.json
+COMPARE_OUT ?= visualization/output/compare_response.json
 
-.PHONY: all runner benchmark run compare run-benchmark clean
+.PHONY: all runner benchmark run compare compare-save run-benchmark clean
 
 all: runner
 
@@ -46,6 +47,11 @@ run: $(RUNNER_BIN)
 
 compare: $(RUNNER_BIN)
 	printf '{"start":{"lat":$(START_LAT),"lon":$(START_LON)},"end":{"lat":$(END_LAT),"lon":$(END_LON)},"compare":true,"traditional_algorithm":"$(TRAD_ALGO)","traditional_geojson":"$(TRAD_GEOJSON)","tftf_graph_json":"$(TFTF_GRAPH_JSON)","include_comparison_geojson":true}\n' | ./$(RUNNER_BIN)
+
+compare-save: $(RUNNER_BIN)
+	mkdir -p $(dir $(COMPARE_OUT))
+	printf '{"start":{"lat":$(START_LAT),"lon":$(START_LON)},"end":{"lat":$(END_LAT),"lon":$(END_LON)},"compare":true,"traditional_algorithm":"$(TRAD_ALGO)","traditional_geojson":"$(TRAD_GEOJSON)","tftf_graph_json":"$(TFTF_GRAPH_JSON)","include_comparison_geojson":true}\n' | ./$(RUNNER_BIN) | tail -n 1 > $(COMPARE_OUT)
+	@echo "Saved: $(COMPARE_OUT)"
 
 run-benchmark: $(BENCH_BIN)
 	./$(BENCH_BIN)
