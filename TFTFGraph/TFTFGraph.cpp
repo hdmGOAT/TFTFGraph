@@ -6,6 +6,7 @@
 #include <string>
 #include <map>
 #include <iomanip>
+#include <climits>
 #include <limits>
 #include <fstream>
 #include "TFTFGraph.h"
