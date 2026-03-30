@@ -13,7 +13,7 @@ int main()
 
     Node Camp_Evangelista{8.487358, 124.629950};
 
-    std::string filename = "../routes.geojson";
+    std::string filename = "../data/geojson/routes.geojson";
 
     // std::cout << "Finding path from Kauswagan City Engineer to USTP...\n";
     // std::cout << "Finding path from Bonbon to Bulua Terminal...\n";

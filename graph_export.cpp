@@ -46,8 +46,8 @@ void loadRoutesFromGeoJSON(const std::string &filepath, TFTFGraph &graph) {
 }
 
 int main() {
-    const std::string geojsonInput = "routes.geojson";
-    const std::string outputFilename = "graph.json";
+    const std::string geojsonInput = "data/geojson/routes.geojson";
+    const std::string outputFilename = "data/graph.json";
     const float transferRangeMeters = 300.0f;
 
     TFTFGraph graph;

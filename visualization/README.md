@@ -30,8 +30,8 @@ make compare-save \
   START_LAT=8.50089 START_LON=124.616 \
   END_LAT=8.29258 END_LON=124.52 \
   TRAD_ALGO=dijkstra \
-  TRAD_GEOJSON=allRoutes.geojson \
-  TFTF_GRAPH_JSON=graph.json
+  TRAD_GEOJSON=data/geojson/allRoutes.geojson \
+  TFTF_GRAPH_JSON=data/graph.json
 ```
 
 ## Open the viewer

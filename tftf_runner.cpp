@@ -271,7 +271,7 @@ int main()
             Coordinate end = {req["end"]["lat"], req["end"]["lon"]};
             bool includeTraditional = req.value("include_traditional", false) || req.value("compare", false);
             std::string traditionalAlgorithm = req.value("traditional_algorithm", "astar");
-            std::string traditionalGeojsonPath = req.value("traditional_geojson", "allRoutes.geojson");
+            std::string traditionalGeojsonPath = req.value("traditional_geojson", "data/geojson/allRoutes.geojson");
             bool includeComparisonGeojson = req.value("include_comparison_geojson", includeTraditional);
             std::string tftfGraphPath = req.value("tftf_graph_json", loadedTftfGraphPath);
 

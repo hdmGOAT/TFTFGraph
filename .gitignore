@@ -1,0 +1,5 @@
+bin/
+visualization/output/*.json
+*.exe
+*.out
+*.o

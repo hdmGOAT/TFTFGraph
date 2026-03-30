@@ -3,9 +3,19 @@
 #include <random>
 #include <iostream>
 #include <chrono>
+#include <filesystem>
 #include "./algorithms/astar/astar.h"
 #include "./algorithms/djikstra/djikstra.h"
 #include <unordered_set>
+
+namespace {
+void ensureParentDirectoryExists(const std::string& filename) {
+    const std::filesystem::path outputPath(filename);
+    if (outputPath.has_parent_path()) {
+        std::filesystem::create_directories(outputPath.parent_path());
+    }
+}
+}
 
 void printProgressBar(int current, int total) {
     int barWidth = 50;
@@ -23,6 +33,7 @@ void printProgressBar(int current, int total) {
 }
 
 void initializeCSV(const std::string& filename) {
+    ensureParentDirectoryExists(filename);
     std::ofstream file(filename);
     file << "from_lat,from_lon,to_lat,to_lon,tftf_ms,dijkstra_ms,astar_ms,"
          << "found_tftf,found_dijkstra,found_astar,"
@@ -31,6 +42,7 @@ void initializeCSV(const std::string& filename) {
 }
 
 void saveTestResult(const TestResult& result, const std::string& filename) {
+    ensureParentDirectoryExists(filename);
     std::ofstream file(filename, std::ios::app);
     file << result.from.latitude << ","
          << result.from.longitude << ","
@@ -157,7 +169,7 @@ TestResult runSingleTest(
     
     // Test A*
     auto startAStar = std::chrono::high_resolution_clock::now();
-    auto astarPath = astar_geojson("routes.geojson", fromNode, toNode, nodeGraph);
+    auto astarPath = astar_geojson("data/geojson/routes.geojson", fromNode, toNode, nodeGraph);
     auto endAStar = std::chrono::high_resolution_clock::now();
     result.astar_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endAStar - startAStar).count();
     result.found_astar = !astarPath.empty();
@@ -175,7 +187,7 @@ TestResult runSingleTest(
 
     // Test Dijkstra
     auto startDijkstra = std::chrono::high_resolution_clock::now();
-    auto dijkstraPath = dijkstra_geojson("routes.geojson", fromNode, toNode, nodeGraph);
+    auto dijkstraPath = dijkstra_geojson("data/geojson/routes.geojson", fromNode, toNode, nodeGraph);
     auto endDijkstra = std::chrono::high_resolution_clock::now();
     result.dijkstra_ms = std::chrono::duration_cast<std::chrono::milliseconds>(endDijkstra - startDijkstra).count();
     result.found_dijkstra = !dijkstraPath.empty();

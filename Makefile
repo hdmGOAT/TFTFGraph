@@ -21,7 +21,7 @@ START_LON ?= 124.64792
 END_LAT ?= 8.47804
 END_LON ?= 124.64303
 TRAD_ALGO ?= dijkstra
-TRAD_GEOJSON ?= routes.geojson
+TRAD_GEOJSON ?= data/geojson/routes.geojson
 TFTF_GRAPH_JSON ?= data/graph.json
 COMPARE_OUT ?= visualization/output/compare_response.json
 

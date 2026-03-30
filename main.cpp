@@ -98,18 +98,18 @@ void runBenchmark(const std::string &geojsonFile, const std::string &label) {
 
     const int testsPerCategory = 1500;
     runTestCategory(network, nodeGraph, SAME_ROUTE,
-                    label + "_same_route.csv", testsPerCategory, allCoords);
+                    "output/benchmarks/" + label + "_same_route.csv", testsPerCategory, allCoords);
     runTestCategory(network, nodeGraph, DIFFERENT_ROUTES,
-                    label + "_different_routes.csv", testsPerCategory, allCoords);
+                    "output/benchmarks/" + label + "_different_routes.csv", testsPerCategory, allCoords);
 
     std::cout << "✅ " << label << " tests completed.\n";
 }
 
 int main() {
     // 🔑 Call runner for each district/network
-    runBenchmark("district1.geojson", "district1");
-    runBenchmark("district2.geojson", "district2");
-    runBenchmark("allRoutes.geojson", "allRoutes");
+    runBenchmark("data/geojson/district1.geojson", "district1");
+    runBenchmark("data/geojson/district2.geojson", "district2");
+    runBenchmark("data/geojson/allRoutes.geojson", "allRoutes");
 
     std::cout << "\nAll networks processed successfully!\n";
     return 0;

@@ -1,129 +1,95 @@
-# TFTF Edge: Revolutionizing Jeepney Routes & Fare Optimization 🚗💨
+# TFTFGraph: Transfer-Flexible Transit Fare Graph for Jeepney Routing
 
-## 🚀 Overview
+Official code for our ongoing research on transfer-aware, fare-aware routing in flexible urban jeepney systems.
 
-Welcome to **TFTF Edge**, a state-of-the-art C++ application designed to optimize jeepney routing and fare calculations. TFTF Edge uses a **Temporal Flexible Transfer and Fare Graph (TFTF)** to empower commuters and jeepney operators alike with smart, real-time route and fare recommendations. 
+`Status: Under peer review` • `Language: C++17` • `Build: Makefile` • `Algorithms: TFTF, Dijkstra, A*` • `Domain: Public Utility Jeepney (PUJ)`
 
-No more waiting in traffic or paying unpredictable fares—TFTF Edge makes jeepney commuting **faster**, **smarter**, and **affordable**!
+Jeepney networks are flexible, overlapping, and not strictly timetable-based, so classic shortest-path methods can produce commuter-unfriendly routes with too many transfers. TFTFGraph models each route as a node and transfer opportunities as coordinate-level edges, then applies lexicographic optimization (fewest transfers first, lowest fare second) to generate more practical paths.
 
----
+This repository also includes baseline methods for comparison: **Dijkstra** and **A\*** on a traditional node graph.
 
-## 🌟 Key Features
+## Why this research
 
-- **Dynamic Route Modeling**: Route flexibility at its best! TFTF Edge calculates the most efficient jeepney routes without strict schedules, adapting in real-time to traffic and other variables.
-- **Fare Optimization**: Never overpay! Fare calculations take into account distance, transfer points, and jeepney density to give you the most cost-effective options.
-- **Efficient Transfers**: Find the best transfer points automatically, ensuring that your journey is quick and smooth.
-- **Density-Aware Routing**: Routes consider jeepney density, helping you avoid crowded rides for a more comfortable commute.
-- **Real-Time Adjustments**: Get real-time route and fare updates based on live traffic and jeepney conditions.
+- **Problem:** Informal transit routing is poorly captured by stop-level, schedule-centric assumptions.
+- **Goal:** Produce realistic jeepney paths that reduce unnecessary transfers while remaining fare-aware.
+- **Approach:** Compress the network via route-as-node representation and compute transfer edges from spatial proximity.
+- **Outcome:** Smaller graph representation with stable query behavior and lower average route-hops in inter-route cases.
 
----
+## Core idea
 
-## ⚡ How It Works
+TFTFGraph operationalizes three principles:
 
-### **1. Route Calculation**
-TFTF Edge dynamically computes optimal jeepney routes between two stations, factoring in transfers, traffic conditions, and jeepney density.
+1. **Route-level abstraction:** each jeepney route is treated as a graph node.
+2. **Coordinate transfer modeling:** feasible transfers are formed using distance-based coordinate checks.
+3. **Lexicographic path selection:** minimize transfers first, then minimize fare among transfer-tied candidates.
 
-### **2. Fare Calculation**
-Once the optimal route is determined, TFTF Edge calculates the fare based on the route’s distance, number of transfers, and other dynamic conditions.
+## Technical details
 
-### **3. Dynamic Adjustments**
-The app continuously updates routes and fares, ensuring you're always getting the best option in real-time.
+- **Graph model:** A TFTF graph $G=(V,E)$ where each $v \in V$ is an entire jeepney route, and each $e \in E$ is a coordinate-level transfer opportunity between two routes.
+- **Transfer generation:** Route polylines are densified (approximately 25 m spacing), indexed in a spatial grid, then candidate inter-route transfer pairs are searched within a transfer radius; the minimum-cost feasible pair per route-pair is retained.
+- **Optimization objective:** Routing uses lexicographic minimization
+	$$
+	\min_P \langle T(P), F(P) \rangle
+	$$
+	where $T(P)$ is transfer count and $F(P)$ is total fare.
+- **Fare model:** Total fare combines per-boarding base fare and distance increments, with implementation-level rules for free-distance threshold and per-block add-ons.
+- **Baseline comparison:** Traditional node-level Dijkstra and A* are retained as baselines to measure runtime, path structure, and route-hop behavior.
 
-**Under the hood**, we use a **TFTF Graph**: 
-- **Nodes** represent jeepney stations.
-- **Edges** are the possible routes and transfers between these stations.
-- The weight of the edges dynamically adjusts based on **time**, **traffic**, and **jeepney density**.
+## Key findings (current)
 
----
+- **Compact full-network representation:** TFTF reports `82` route nodes and `4,093` transfer edges versus `65,244` nodes and `40,716` edges in a traditional node graph setup.
+- **Stable query envelope:** TFTF runtime remains bounded and predictable in tested scenarios (reported worst case around `~195 ms`) while enforcing transfer/fare-aware constraints.
+- **Lower inter-route hops:** TFTF averages about `2.1` routes in inter-route cases, while baseline shortest-path methods typically require `3–4` routes.
+- **Commuter-aligned paths:** By prioritizing transfer minimization before fare tie-breaking, paths are generally less fragmented and operationally closer to real jeepney travel behavior.
 
-## 🧠 The Math Behind the Magic
+## Project layout
 
-Here's how we calculate the most optimal routes and fares:
-
-### **Route Cost Calculation**
-
-The formula to select routes looks like this:
-
+```text
+.
+├── TFTFGraph/                    # Core TFTF graph logic
+├── algorithms/                   # Baseline algorithms and node structures
+├── comparison/                   # Simple baseline test programs
+├── data/
+│   ├── geojson/                  # Route datasets
+│   └── graph.json                # Serialized TFTF graph
+├── output/
+│   ├── benchmarks/               # Benchmark CSV outputs
+│   ├── routes/                   # Route GeoJSON outputs
+│   └── legacy/                   # Archived generated artifacts
+├── visualization/                # Side-by-side map comparison UI
+├── main.cpp                      # Benchmark runner
+├── tftf_runner.cpp               # JSON stdin/stdout runner
+├── graph_export.cpp              # GeoJSON -> TFTF graph serialization
+└── Makefile
 ```
-Total Cost = Transfer Cost × Density Factor
+
+## Quick start
+
+```bash
+make clean
+make runner
+make benchmark
 ```
 
-This calculates how efficient the route is in terms of transfer points and how crowded the jeepney is.
+Run comparison output generation:
 
-### **Fare Calculation**
-
-The fare is based on:
-
-```
-TFare = (BASEFARE × N) + (DISTANCE / 1000 × FPKM)
+```bash
+make compare-save
 ```
 
-Where:
-- `BASEFARE`: Base fare of the jeepney ride.
-- `N`: The number of transfers.
-- `DISTANCE`: The total distance covered.
-- `FPKM`: Fare per kilometer.
+Run benchmark suite:
 
-This model provides accurate fare estimates and helps with financial planning for your trip.
+```bash
+make run-benchmark
+```
 
----
+## Reproducible outputs
 
-## 🛠 Installation
+- Comparison JSON: `visualization/output/compare_response.json`
+- Benchmark CSVs: `output/benchmarks/`
+- Generated route GeoJSON: `output/routes/`
 
-### Prerequisites:
-- **C++17** or later
-- **CMake** for building the project
-- **Linux** or **Windows** development environment
+## Notes
 
-### Steps to Get Started:
-
-1. **Clone the Repository**:
-
-   ```bash
-   git clone https://github.com/yourusername/tftf-edge.git
-   ```
-
-2. **Navigate to the Project Folder**:
-
-   ```bash
-   cd tftf-edge
-   ```
-
-3. **Build the Project** using CMake:
-
-   ```bash
-   mkdir build
-   cd build
-   cmake ..
-   make
-   ```
-
-4. **Run the Application**:
-
-   ```bash
-   ./tftf-edge
-   ```
-
-Now you can start exploring dynamic jeepney routing and fare calculation in action!
-
----
-
-## 🤝 Contributing
-
-**TFTF Edge** is a community-driven project, and we welcome contributions from anyone interested in improving the world of jeepney routing and fare optimization! Here's how you can help:
-
-1. **Fork** the repository and clone it to your local machine.
-2. **Make your changes**—whether it’s adding a feature or fixing a bug.
-3. **Submit a Pull Request** with a description of what you've done.
-
----
-
-## 📜 License
-
-TFTF Edge is open-source and licensed under the **MIT License**. See the [LICENSE](LICENSE) file for more details.
-
----
-
-## 🎉 Let's Build the Future of Public Transport Together!
-
-**TFTF Edge** is more than just an app—it’s a movement towards smarter, more flexible jeepney routes and fairer fare systems. Whether you're a commuter, developer, or transport operator, you’re helping to shape the future of public transportation.
+- This project is actively being prepared for publication.
+- Numbers and claims should be treated as research-in-progress until final paper release.
