@@ -1,6 +1,6 @@
 # TFTFGraph: Transfer-Flexible Transit Fare Graph for Jeepney Routing
 
-Official code for our ongoing research on transfer-aware, fare-aware routing in flexible urban jeepney systems.
+Official code for our published research on transfer-aware, fare-aware routing in flexible urban jeepney systems.
 
 `Status: Under peer review` • `Language: C++17` • `Build: Makefile` • `Algorithms: TFTF, Dijkstra, A*` • `Domain: Public Utility Jeepney (PUJ)`
 
